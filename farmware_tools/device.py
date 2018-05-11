@@ -202,15 +202,15 @@ def move_absolute(location, speed, offset):
                              'speed': speed,
                              'offset': offset}))
 
-def move_relative(__x, __y, __z, speed):
+def move_relative(x, y, z, speed):
     'Send command: move_relative'
     kind = 'move_relative'
     args_ok = _check_arg(kind, speed, range(1, 101))
     if args_ok:
         return send_celery_script(
-            _assemble(kind, {'x': __x,
-                             'y': __y,
-                             'z': __z,
+            _assemble(kind, {'x': x,
+                             'y': y,
+                             'z': z,
                              'speed': speed}))
 
 def power_off():
@@ -345,28 +345,30 @@ if __name__ == '__main__':
     emergency_lock()
     emergency_unlock()
     execute(1)
-    execute_script('label')
-    factory_reset('farmbot_os')
-    find_home('all')
-    home('x')
-    install_farmware('url')
+    execute_script('take-photo')
+    # factory_reset('farmbot_os')
+    find_home('x')
+    home('all')
+    URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
+        'master/packages/take-photo/manifest.json'
+    install_farmware(URL)
     install_first_party_farmware()
     COORD = assemble_coordinate(0, 0, 0)
     move_absolute(COORD, 100, COORD)
     move_relative(0, 0, 0, 100)
-    power_off()
-    read_pin(1, 'label', 1)
+    # power_off()
+    read_pin(1, 'label', 0)
     read_status()
-    reboot()
+    # reboot()
     register_gpio(1, 1)
-    remove_farmware('package')
-    set_pin_io_mode(1, 1)
+    remove_farmware('farmware')
+    set_pin_io_mode(0, 47)
     set_servo_angle(4, 1)
     sync()
     take_photo()
     toggle_pin(1)
     unregister_gpio(1)
-    update_farmware('package')
+    update_farmware('take-photo')
     wait(100)
-    write_pin(1, 1, 1)
+    write_pin(1, 1, 0)
     zero('z')

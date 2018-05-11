@@ -59,9 +59,9 @@ def download_plants(get_info=get_required_info):
     'Get plant data from the web app.'
     return post('points/search', {'pointer_type': 'Plant'}, get_info)
 
-def add_plant(plant_x, plant_y, get_info=get_required_info):
+def add_plant(x, y, get_info=get_required_info):
     'Add a plant to the garden map.'
-    new_plant = {'pointer_type': 'Plant', 'x': plant_x, 'y': plant_y}
+    new_plant = {'pointer_type': 'Plant', 'x': x, 'y': y}
     return post('points', new_plant, get_info)
 
 if __name__ == '__main__':

@@ -39,8 +39,7 @@ def get_credentials():
         'device_id': token['unencoded']['bot'],
         'token': token['encoded'],
         'mqtt_host': token['unencoded']['mqtt'],
-        'url': server + '/api/'
-    }
+        'url': server + '/api/'}
 
 def send(celery_script, credentials, rpc_id=''):
     'Send Celery Script to a device for execution.'
@@ -50,9 +49,7 @@ def send(celery_script, credentials, rpc_id=''):
         hostname=credentials['mqtt_host'],
         auth={
             'username': credentials['device_id'],
-            'password': credentials['token']
-            }
-        )
+            'password': credentials['token']})
 
 def subscribe(host, user, password, callback):
     'Subscribe to the from_device channel.'
@@ -74,6 +71,7 @@ class Tester(object):
         self.outgoing = {}  # {'uuid': {'kind': 'wait', 'time': 0}}
         self.incoming = {}  # {'uuid': {'status': 'ok', 'time': 9}}
         self.elasped = []
+        self.verbose = True
 
     def test(self, command):
         'Test a command on the device.'
@@ -108,6 +106,7 @@ class Tester(object):
         timeout_seconds = 10
         begin = time.time()
         kind = self.outgoing[rpc_id]['kind']
+        print_kind = '' if self.verbose else device.MAGENTA + kind + ' '
         out = self.outgoing[rpc_id]['time']
         while (time.time() - begin) < timeout_seconds:
             if rpc_id in self.incoming:
@@ -115,14 +114,17 @@ class Tester(object):
                 _in = self.incoming[rpc_id]['time']
                 time_diff = _in - out
                 color = device.GREEN if status == 'ok' else device.RED
-                print('{}{} {}{}{} {:.2f}s'.format(
-                    device.MAGENTA, kind, color, status, device.RESET,
-                    time_diff))
+                print('{}{}{}{} {:.2f}s'.format(
+                    print_kind, color, status, device.RESET, time_diff))
+                if self.verbose:
+                    print()
                 break
         else:
             time_diff = time.time() - out
-            print('{} {}TIMEOUT{} {:.2f}s'.format(
-                kind, device.RED, device.RESET, time_diff))
+            print('{}{}TIMEOUT{} {:.2f}s'.format(
+                print_kind, device.RED, device.RESET, time_diff))
+            if self.verbose:
+                print()
         self.elasped.append(time_diff)
 
     def print_elapsed_time(self):
@@ -135,40 +137,49 @@ if __name__ == '__main__':
     # Device tests
     COORDINATE = device.assemble_coordinate(1, 1, 1)
     OFFSET = device.assemble_coordinate(0, 0, 0)
+    URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
+        'master/packages/take-photo/manifest.json'
     TESTS = [
-        {'command': device.log, 'args': ['hi']},
-        {'command': device.check_updates, 'args': ['farmbot_os']},
-        {'command': device.emergency_lock, 'args': []},
-        {'command': device.emergency_unlock, 'args': []},
-        {'command': device.execute, 'args': [1]},
-        {'command': device.execute_script, 'args': ['take-photo']},
-        {'command': device.find_home, 'args': ['x']},
-        {'command': device.home, 'args': ['z']},
-        {'command': device.install_farmware, 'args': ['farmware_url']},
-        {'command': device.install_first_party_farmware, 'args': []},
-        {'command': device.move_absolute, 'args': [COORDINATE, 100, OFFSET]},
-        {'command': device.move_relative, 'args': [0, 0, 0, 100]},
-        {'command': device.read_pin, 'args': [1, 'label', 1]},
-        {'command': device.read_status, 'args': []},
-        {'command': device.register_gpio, 'args': [1, 1]},
-        {'command': device.remove_farmware, 'args': ['farmware']},
-        {'command': device.set_pin_io_mode, 'args': [0, 47]},
-        {'command': device.set_servo_angle, 'args': [4, 1]},
-        {'command': device.sync, 'args': []},
-        {'command': device.take_photo, 'args': []},
-        {'command': device.toggle_pin, 'args': [1]},
-        {'command': device.unregister_gpio, 'args': [1]},
-        {'command': device.update_farmware, 'args': ['take-photo']},
-        {'command': device.wait, 'args': [100]},
-        {'command': device.write_pin, 'args': [1, 1, 1]},
-        {'command': device.zero, 'args': ['y']},
+        {'command': device.log, 'kwargs': {'message': 'hi'}},
+        {'command': device.check_updates, 'kwargs': {'package': 'farmbot_os'}},
+        {'command': device.emergency_lock, 'kwargs': {}},
+        {'command': device.emergency_unlock, 'kwargs': {}},
+        {'command': device.execute, 'kwargs': {'sequence_id': 1}},
+        {'command': device.execute_script, 'kwargs': {'label': 'take-photo'}},
+        {'command': device.find_home, 'kwargs': {'axis': 'x'}},
+        {'command': device.home, 'kwargs': {'axis': 'z'}},
+        {'command': device.install_farmware, 'kwargs': {'url': URL}},
+        {'command': device.install_first_party_farmware, 'kwargs': {}},
+        {'command': device.move_absolute,
+         'kwargs': {'location': COORDINATE, 'speed': 100, 'offset': OFFSET}},
+        {'command': device.move_relative,
+         'kwargs': {'x': 0, 'y': 0, 'z': 0, 'speed': 100}},
+        {'command': device.read_pin,
+         'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0}},
+        {'command': device.read_status, 'kwargs': {}},
+        {'command': device.register_gpio,
+         'kwargs': {'pin_number': 1, 'sequence_id': 1}},
+        {'command': device.remove_farmware, 'kwargs': {'package': 'farmware'}},
+        {'command': device.set_pin_io_mode,
+         'kwargs': {'pin_io_mode': 0, 'pin_number': 47}},
+        {'command': device.set_servo_angle,
+         'kwargs': {'pin_number': 4, 'pin_value': 1}},
+        {'command': device.sync, 'kwargs': {}},
+        {'command': device.take_photo, 'kwargs': {}},
+        {'command': device.toggle_pin, 'kwargs': {'pin_number': 1}},
+        {'command': device.unregister_gpio, 'kwargs': {'pin_number': 1}},
+        {'command': device.update_farmware, 'kwargs': {'package': 'take-photo'}},
+        {'command': device.wait, 'kwargs': {'milliseconds': 100}},
+        {'command': device.write_pin,
+         'kwargs': {'pin_number': 1, 'pin_value': 1, 'pin_mode': 0}},
+        {'command': device.zero, 'kwargs': {'axis': 'y'}},
     ]
 
     print()
     RUN = INPUT('Run device tests? (Y/n) ') or 'y'
     if RUN.lower() == 'y':
         for test in TESTS:
-            TEST.test(test['command'](*test['args']))
+            TEST.test(test['command'](**test['kwargs']))
         print('=' * 20)
         TEST.print_elapsed_time()
         print()
@@ -185,4 +196,4 @@ if __name__ == '__main__':
         app.get('sensors', get_info=app_login)
         app.post('tools', {'name': 'test_tool_' + TIMESTAMP}, get_info=app_login)
         app.download_plants(get_info=app_login)
-        app.add_plant(100, 100, get_info=app_login)
+        app.add_plant(x=100, y=100, get_info=app_login)
