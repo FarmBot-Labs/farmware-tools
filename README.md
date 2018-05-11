@@ -3,8 +3,8 @@ Tools for use by [Farmware](https://software.farm.bot/docs/farmware-dev).
 
 ## Example
 ```Python
-from farmware_tools import log
-log('hello')
+from farmware_tools import device
+device.log('hello')
 ```
 If the above code is run within a Farmware,
 [FarmBot OS](https://github.com/FarmBot/farmbot_os)
