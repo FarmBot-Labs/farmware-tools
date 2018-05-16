@@ -133,18 +133,23 @@ class Tester(object):
 
 if __name__ == '__main__':
     TEST = Tester()
+    def app_login():
+        'Return app login info.'
+        mqtt_login = TEST.login_info
+        return mqtt_login['token'], mqtt_login['url']
 
     # Device tests
     COORDINATE = device.assemble_coordinate(1, 1, 1)
     OFFSET = device.assemble_coordinate(0, 0, 0)
     URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
         'master/packages/take-photo/manifest.json'
+    SEQUENCE = app.find_sequence_by_name(name='test', get_info=app_login)
     TESTS = [
         {'command': device.log, 'kwargs': {'message': 'hi'}},
         {'command': device.check_updates, 'kwargs': {'package': 'farmbot_os'}},
         {'command': device.emergency_lock, 'kwargs': {}},
         {'command': device.emergency_unlock, 'kwargs': {}},
-        {'command': device.execute, 'kwargs': {'sequence_id': 1}},
+        {'command': device.execute, 'kwargs': {'sequence_id': SEQUENCE}},
         {'command': device.execute_script, 'kwargs': {'label': 'take-photo'}},
         {'command': device.find_home, 'kwargs': {'axis': 'x'}},
         {'command': device.home, 'kwargs': {'axis': 'z'}},
@@ -158,7 +163,7 @@ if __name__ == '__main__':
          'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0}},
         {'command': device.read_status, 'kwargs': {}},
         {'command': device.register_gpio,
-         'kwargs': {'pin_number': 1, 'sequence_id': 1}},
+         'kwargs': {'pin_number': 1, 'sequence_id': SEQUENCE}},
         {'command': device.remove_farmware, 'kwargs': {'package': 'farmware'}},
         {'command': device.set_pin_io_mode,
          'kwargs': {'pin_io_mode': 0, 'pin_number': 47}},
@@ -186,14 +191,11 @@ if __name__ == '__main__':
 
     # App tests
     TIMESTAMP = str(int(time.time()))
-    def app_login():
-        'Return app login info.'
-        mqtt_login = TEST.login_info
-        return mqtt_login['token'], mqtt_login['url']
     RUN = INPUT('Run app tests? (Y/n) ') or 'y'
     if RUN.lower() == 'y':
-        app.log('hi', get_info=app_login)
-        app.get('sensors', get_info=app_login)
-        app.post('tools', {'name': 'test_tool_' + TIMESTAMP}, get_info=app_login)
-        app.download_plants(get_info=app_login)
-        app.add_plant(x=100, y=100, get_info=app_login)
+        print(app.log('hi', get_info=app_login))
+        print(app.get('sensors', get_info=app_login))
+        print(app.post('tools', {'name': 'test_tool_' + TIMESTAMP}, get_info=app_login))
+        print(app.download_plants(get_info=app_login))
+        print(app.add_plant(x=100, y=100, get_info=app_login))
+        print(app.find_sequence_by_name(name='test', get_info=app_login))
