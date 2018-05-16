@@ -75,7 +75,7 @@ def find_sequence_by_name(name, get_info=_get_required_info):
     try:
         sequence_id = sequence_lookup[name]
     except KeyError:
-        log('Sequence `{}` not found.'.format(name))
+        log('Sequence `{}` not found.'.format(name), 'error')
         sys.exit(1)
     else:
         return sequence_id

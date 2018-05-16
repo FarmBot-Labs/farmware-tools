@@ -9,7 +9,7 @@ with open('README.md') as f:
 
 if __name__ == '__main__':
     setup(name='farmware_tools',
-          version='0.2.0',
+          version='0.2.1',
           description='Tools for use by Farmware.',
           long_description=README,
           url='https://github.com/FarmBot-Labs/farmware-tools',

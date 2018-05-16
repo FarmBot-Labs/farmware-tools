@@ -395,7 +395,13 @@ def get_current_position():
 
 def get_pin_value(pin_number):
     'Get a value from a pin.'
-    return get_bot_state()['pins'][str(pin_number)]['value']
+    try:
+        value = get_bot_state()['pins'][str(pin_number)]['value']
+    except KeyError:
+        log('Pin `{}` value unknown.'.format(pin_number), 'error')
+        sys.exit(1)
+    else:
+        return value
 
 if __name__ == '__main__':
     send_celery_script({'kind': 'read_status', 'args': {}})
