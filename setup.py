@@ -2,17 +2,25 @@
 
 """Farmware Tools package setup."""
 
+import os
 from setuptools import setup
+
+with open(os.path.join('farmware_tools', 'VERSION')) as version_file:
+    VERSION = version_file.read().strip()
 
 with open('README.md') as f:
     README = f.read()
 
 if __name__ == '__main__':
     setup(name='farmware_tools',
-          version='0.2.1',
-          description='Tools for use by Farmware.',
+          version=VERSION,
+          description='Farmware convenience functions for use in FarmBot OS.',
           long_description=README,
+          long_description_content_type='text/markdown',
           url='https://github.com/FarmBot-Labs/farmware-tools',
+          project_urls={
+              'FarmBot': 'https://farm.bot/'
+          },
           author='FarmBot Inc.',
           license='MIT',
           author_email='farmware.tools@farm.bot',

@@ -1,5 +1,5 @@
 # Farmware Tools
-Tools for use by [Farmware](https://software.farm.bot/docs/farmware-dev).
+Tools for use by [Farmware](https://developer.farm.bot/docs/farmware).
 
 ## Example
 ```Python
@@ -17,9 +17,16 @@ the output will be the command that would have been sent to FarmBot OS:
 {'kind': 'send_message', 'args': {'message': 'hello', 'message_type': 'info'}}
 ```
 
-## Local installation
+## Local installation (for local Farmware development)
 ```
-git clone https://github.com/FarmBot-Labs/farmware-tools
-cd farmware-tools/
-pip install .
+pip install farmware-tools
 ```
+
+## Specifying a version in a Farmware manifest
+```
+"farmware_tools_version": "v0.2.2"
+```
+By including this line in a Farmware
+[manifest](https://developer.farm.bot/docs/farmware#section-farmware-manifest),
+FarmBot OS will automatically install the specified version
+and make it available to import from within the Farmware.
