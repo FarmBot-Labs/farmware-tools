@@ -3,6 +3,7 @@
 '''Farmware Tools Tests.'''
 
 from __future__ import print_function
+import os
 import uuid
 import json
 import time
@@ -10,7 +11,7 @@ from getpass import getpass
 import paho.mqtt.publish as publish
 import paho.mqtt.client as mqtt
 import requests
-from farmware_tools import device, app
+from farmware_tools import device, app, get_config_value
 
 try:
     INPUT = raw_input
@@ -199,3 +200,20 @@ if __name__ == '__main__':
         print(app.download_plants(get_info=app_login))
         print(app.add_plant(x=100, y=100, get_info=app_login))
         print(app.find_sequence_by_name(name='test', get_info=app_login))
+
+    # Other tests
+    os.environ['farmware_name_int_input'] = '10'
+    os.environ['farmware_name_str_input'] = 'ten'
+    def _test_get_config(farmware, config, type_, expected):
+        if type_ is None:
+            received = get_config_value(farmware, config)
+        else:
+            received = get_config_value(farmware, config, type_)
+        assert received == expected, 'expected {}, received {}'.format(
+            repr(expected), repr(received))
+        print('get_config_value result {} == {}'.format(
+            repr(received), repr(expected)))
+    _test_get_config('farmware_name', 'int_input', None, 10)
+    _test_get_config('Farmware Name', 'int_input', int, 10)
+    _test_get_config('farmware-name', 'int_input', str, '10')
+    _test_get_config('farmware_name', 'str_input', str, 'ten')
