@@ -202,18 +202,24 @@ if __name__ == '__main__':
         print(app.find_sequence_by_name(name='test', get_info=app_login))
 
     # Other tests
-    os.environ['farmware_name_int_input'] = '10'
-    os.environ['farmware_name_str_input'] = 'ten'
     def _test_get_config(farmware, config, type_, expected):
+        def _get_state():
+            return {'process_info': {'farmwares': {
+                'Farmware Name': {'config': [{'name': 'twenty', 'value': 20}]}}}}
         if type_ is None:
-            received = get_config_value(farmware, config)
+            received = get_config_value(farmware, config, _get_state=_get_state)
         else:
-            received = get_config_value(farmware, config, type_)
+            received = get_config_value(farmware, config, type_, _get_state=_get_state)
         assert received == expected, 'expected {}, received {}'.format(
             repr(expected), repr(received))
         print('get_config_value result {} == {}'.format(
             repr(received), repr(expected)))
+    os.environ['farmware_name_int_input'] = '10'
+    os.environ['farmware_name_str_input'] = 'ten'
     _test_get_config('farmware_name', 'int_input', None, 10)
     _test_get_config('Farmware Name', 'int_input', int, 10)
     _test_get_config('farmware-name', 'int_input', str, '10')
     _test_get_config('farmware_name', 'str_input', str, 'ten')
+    _test_get_config('Farmware Name', 'twenty', None, 20)  # default value
+    os.environ['farmware_name_twenty'] = 'twenty'
+    _test_get_config('Farmware Name', 'twenty', str, 'twenty')  # set value
