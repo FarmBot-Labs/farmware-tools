@@ -1,5 +1,5 @@
 # Farmware Tools
-Tools for use by [Farmware](https://developer.farm.bot/docs/farmware).
+Tools for use by [Farmware](https://developer.farm.bot/docs/farmware). Starting with FarmBot OS v6.4.2, this package is installed automatically and available for Farmware to import. See the sections below for other installation configurations.
 
 ## Example
 ```Python
