@@ -19,6 +19,8 @@ CYAN = _color('cyan')
 RED = _color('red')
 RESET = _color('reset')
 
+ALLOWED_AXIS_VALUES = ['x', 'y', 'z', 'all']
+
 def _on_error():
     sys.exit(1)
     return
@@ -170,7 +172,7 @@ def send_message(message, message_type):
 def calibrate(axis):
     'Send command: calibrate'
     kind = 'calibrate'
-    args_ok = _check_arg(kind, axis, ['x', 'y', 'z', 'all'])
+    args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
 
@@ -219,7 +221,7 @@ def factory_reset(package):
 def find_home(axis):
     'Send command: find_home'
     kind = 'find_home'
-    args_ok = _check_arg(kind, axis, ['x', 'y', 'z', 'all'])
+    args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
 
@@ -227,7 +229,7 @@ def find_home(axis):
 def home(axis):
     'Send command: home'
     kind = 'home'
-    args_ok = _check_arg(kind, axis, ['x', 'y', 'z', 'all'])
+    args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
 
@@ -385,21 +387,28 @@ def write_pin(pin_number, pin_value, pin_mode):
 def zero(axis):
     'Send command: zero'
     kind = 'zero'
-    args_ok = _check_arg(kind, axis, ['x', 'y', 'z', 'all'])
+    args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
 
-def get_current_position():
+def get_current_position(axis='all', _get_bot_state=get_bot_state):
     'Get the current position.'
-    return get_bot_state()['location_data']['position']
+    args_ok = _check_arg('get_current_position', axis, ALLOWED_AXIS_VALUES)
+    if args_ok:
+        if axis in ['x', 'y', 'z']:
+            try:
+                return _get_bot_state()['location_data']['position'][axis]
+            except KeyError:
+                _error('Position `{}` value unknown.'.format(axis))
+        else:
+            return _get_bot_state()['location_data']['position']
 
-def get_pin_value(pin_number):
+def get_pin_value(pin_number, _get_bot_state=get_bot_state):
     'Get a value from a pin.'
     try:
-        value = get_bot_state()['pins'][str(pin_number)]['value']
+        value = _get_bot_state()['pins'][str(pin_number)]['value']
     except KeyError:
-        log('Pin `{}` value unknown.'.format(pin_number), 'error')
-        sys.exit(1)
+        _error('Pin `{}` value unknown.'.format(pin_number))
     else:
         return value
 
