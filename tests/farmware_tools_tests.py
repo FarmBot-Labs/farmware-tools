@@ -18,19 +18,25 @@ try:
 except NameError:
     INPUT = input
 
+def _decode(_input):
+    try:
+        return _input.decode()
+    except AttributeError:
+        return _input
+
 def get_credentials():
     'Get device_id, token, and mqtt_host from server, email, and password.'
-    use_localhost = (INPUT('Use localhost? (Y/n): ') or 'Y').decode('utf-8')
+    use_localhost = _decode(INPUT('Use localhost? (Y/n): ') or 'Y')
     if 'y' in use_localhost.lower():
         server = 'http://localhost:3000/'
         email = 'admin@admin.com'
         password = 'password123'
     else:
-        server = (INPUT('server: ') or 'https://my.farm.bot/').decode('utf-8')
-        email = INPUT('account email: ').decode('utf-8')
+        server = _decode(INPUT('server: ') or 'https://my.farm.bot/')
+        email = _decode(INPUT('account email: '))
         password = getpass('password: ')
     token_headers = {'content-type': 'application/json'}
-    user = {'user': {'email': email, 'password': password.decode('utf-8')}}
+    user = {'user': {'email': email, 'password': _decode(password)}}
     payload = json.dumps(user)
     response = requests.post(server + 'api/tokens',
                              headers=token_headers, data=payload)
@@ -95,7 +101,7 @@ class Tester(object):
     def add_response(self, _client, _userdata, message):
         'Add a response to the list.'
         if 'from_device' in message.topic:
-            parsed = json.loads(message.payload)
+            parsed = json.loads(message.payload.decode())
             kind = parsed['kind']
             if kind == 'rpc_ok' or kind == 'rpc_error':
                 rpc_id = parsed['args']['label']
@@ -224,6 +230,7 @@ if __name__ == '__main__':
         print(PLANT2)
         print(app.delete('points', PLANT2['id'], get_info=app_login))
         print(app.find_sequence_by_name(name='test', get_info=app_login))
+        print()
 
     # Other tests
     def _test_get_config(farmware, config, type_, expected):
