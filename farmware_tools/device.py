@@ -5,7 +5,6 @@
 from __future__ import print_function
 import os
 import sys
-import json
 from functools import wraps
 import requests
 from .aux import Color
@@ -31,42 +30,35 @@ def rpc_wrapper(command, rpc_id=''):
     'Wrap a command in `rpc_request`.'
     return {'kind': 'rpc_request', 'args': {'label': rpc_id}, 'body': [command]}
 
-def post(endpoint, payload):
-    'Post a payload to the device Farmware API.'
+def _device_request(method, endpoint, payload=None):
+    'Make a request to the device Farmware API.'
     try:
-        url = os.environ['FARMWARE_URL']
+        base_url = os.environ['FARMWARE_URL']
         token = os.environ['FARMWARE_TOKEN']
     except KeyError:
         return
-    else:
-        response = requests.post(
-            url + 'api/v1/' + endpoint,
-            headers={'Authorization': 'Bearer ' + token,
-                     'content-type': 'application/json'},
-            data=json.dumps(payload))
-        if response.status_code != 200:
-            log('Invalid {} request `{}` ({})'.format(
-                endpoint, payload, response.status_code), 'error')
-            _on_error()
-        return response
+
+    url = base_url + 'api/v1/' + endpoint
+    request_kwargs = {}
+    request_kwargs['headers'] = {
+        'Authorization': 'Bearer ' + token,
+        'content-type': 'application/json'}
+    if payload is not None:
+        request_kwargs['json'] = payload
+    response = requests.request(method, url, **request_kwargs)
+    if response.status_code != 200:
+        log('Invalid {} request `{}` ({})'.format(
+            endpoint, payload or '', response.status_code), 'error')
+        _on_error()
+    return response
+
+def post(endpoint, payload):
+    'Post a payload to the device Farmware API.'
+    return _device_request('POST', endpoint, payload)
 
 def get(endpoint):
     'Get info from the device Farmware API.'
-    try:
-        url = os.environ['FARMWARE_URL']
-        token = os.environ['FARMWARE_TOKEN']
-    except KeyError:
-        return
-    else:
-        response = requests.get(
-            url + 'api/v1/' + endpoint,
-            headers={'Authorization': 'Bearer ' + token,
-                     'content-type': 'application/json'})
-        if response.status_code != 200:
-            log('Invalid {} request ({})'.format(
-                endpoint, response.status_code), 'error')
-            _on_error()
-        return response
+    return _device_request('GET', endpoint)
 
 def get_bot_state():
     'Get the device state.'
