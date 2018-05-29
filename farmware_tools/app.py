@@ -9,6 +9,9 @@ import time
 import json
 import base64
 import requests
+from .aux import Color
+
+COLOR = Color()
 
 def _get_required_info():
     'Get the info required to send an HTTP request to the FarmBot Web App.'
@@ -50,7 +53,9 @@ def request(raw_method, endpoint, _id=None, payload=None,
     if payload is not None:
         request_kwargs['json'] = payload
     response = requests.request(method, url, **request_kwargs)
-    request_details = '{}: {}'.format(response.status_code, request_string)
+    colorized_status_code = COLOR.colorize_response_code(response.status_code)
+    bold_request_string = COLOR.make_bold(request_string)
+    request_details = '{}: {}'.format(colorized_status_code, bold_request_string)
     if verbose:
         print()
         print(request_details)

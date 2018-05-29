@@ -8,17 +8,9 @@ import sys
 import json
 from functools import wraps
 import requests
+from .aux import Color
 
-def _color(string):
-    lookup = {'red': 31, 'magenta': 35, 'cyan': 36, 'green': 32, 'reset': 0}
-    return '\033[{}m'.format(lookup[string])
-
-GREEN = _color('green')
-MAGENTA = _color('magenta')
-CYAN = _color('cyan')
-RED = _color('red')
-RESET = _color('reset')
-
+COLOR = Color()
 ALLOWED_AXIS_VALUES = ['x', 'y', 'z', 'all']
 
 def _on_error():
@@ -34,12 +26,6 @@ def _check_celery_script(command):
         _on_error()
     else:
         return kind, args
-
-def _colorize_celery_script(kind, args):
-    to_print = "{{'kind': '{magenta}{kind}{reset}', " \
-    "'args': {cyan}{args}{reset}}}".format(
-        magenta=MAGENTA, cyan=CYAN, reset=RESET, kind=kind, args=args)
-    return to_print
 
 def rpc_wrapper(command, rpc_id=''):
     'Wrap a command in `rpc_request`.'
@@ -103,7 +89,7 @@ def send_celery_script(command):
     kind, args = _check_celery_script(command)
     response = post('celery_script', command)
     if response is None:
-        print(_colorize_celery_script(kind, args))
+        print(COLOR.colorize_celery_script(kind, args))
     return command
 
 def log(message, message_type='info'):
@@ -114,20 +100,20 @@ def _assemble(kind, args):
     'Assemble a celery script command.'
     return {'kind': kind, 'args': args}
 
-def _error(error):
+def _error(error_text):
     try:
         os.environ['FARMWARE_URL']
     except KeyError:
-        print(RED + error + RESET)
+        print(COLOR.error(error_text))
     else:
-        log(error, 'error')
+        log(error_text, 'error')
 
 def _cs_error(kind, arg):
     try:
         os.environ['FARMWARE_URL']
     except KeyError:
-        print('{red}Invalid input `{arg}` in `{kind}`{reset}'.format(
-            red=RED, arg=arg, kind=kind, reset=RESET))
+        print(COLOR.error('Invalid input `{arg}` in `{kind}`'.format(
+            arg=arg, kind=kind)))
     else:
         log('Invalid arg `{}` for `{}`'.format(arg, kind), 'error')
 

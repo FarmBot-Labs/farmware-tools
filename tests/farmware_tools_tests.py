@@ -11,7 +11,9 @@ from getpass import getpass
 import paho.mqtt.publish as publish
 import paho.mqtt.client as mqtt
 import requests
-from farmware_tools import device, app, get_config_value
+from farmware_tools import device, app, get_config_value, aux
+
+COLOR = aux.Color()
 
 try:
     INPUT = raw_input
@@ -113,23 +115,23 @@ class Tester(object):
         timeout_seconds = 10
         begin = time.time()
         kind = self.outgoing[rpc_id]['kind']
-        print_kind = '' if self.verbose else device.MAGENTA + kind + ' '
+        print_kind = '' if self.verbose else COLOR.magenta + kind + ' '
         out = self.outgoing[rpc_id]['time']
         while (time.time() - begin) < timeout_seconds:
             if rpc_id in self.incoming:
                 status = self.incoming[rpc_id]['status']
                 _in = self.incoming[rpc_id]['time']
                 time_diff = _in - out
-                color = device.GREEN if status == 'ok' else device.RED
+                color = COLOR.green if status == 'ok' else COLOR.red
                 print('{}{}{}{} {:.2f}s'.format(
-                    print_kind, color, status, device.RESET, time_diff))
+                    print_kind, color, status, COLOR.reset, time_diff))
                 if self.verbose:
                     print()
                 break
         else:
             time_diff = time.time() - out
             print('{}{}TIMEOUT{} {:.2f}s'.format(
-                print_kind, device.RED, device.RESET, time_diff))
+                print_kind, COLOR.red, COLOR.reset, time_diff))
             if self.verbose:
                 print()
         self.elasped.append(time_diff)
@@ -233,6 +235,10 @@ if __name__ == '__main__':
         print()
 
     # Other tests
+    def _print_header(text):
+        print()
+        print(text)
+        print('-' * 35)
     def _test_get_config(farmware, config, type_, expected):
         def _get_state():
             return {'process_info': {'farmwares': {
@@ -247,6 +253,7 @@ if __name__ == '__main__':
             repr(received), repr(expected)))
     os.environ['farmware_name_int_input'] = '10'
     os.environ['farmware_name_str_input'] = 'ten'
+    _print_header('farmware_tools.get_config_value():')
     _test_get_config('farmware_name', 'int_input', None, 10)
     _test_get_config('Farmware Name', 'int_input', int, 10)
     _test_get_config('farmware-name', 'int_input', str, '10')
@@ -263,9 +270,11 @@ if __name__ == '__main__':
         value = func(key, _get_bot_state=_get_state)
         assert value == expected
         print('`{}` value {} == {}'.format(key, value, expected))
+    _print_header('device.get_current_position():')
     _test_get_value(device.get_current_position, 'all', {'y': 1, 'z': 0})
     _test_get_value(device.get_current_position, 'x', None)
     _test_get_value(device.get_current_position, 'y', 1)
+    _print_header('device.get_pin_value():')
     _test_get_value(device.get_pin_value, 14, None)
     _test_get_value(device.get_pin_value, 13, 1)
     print()
