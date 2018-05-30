@@ -70,6 +70,9 @@ def subscribe(host, user, password, callback):
     client.loop_start()
     return client
 
+def _new_uuid(label=''):
+    return str(uuid.uuid4())[:-len(label)] + label
+
 class Tester(object):
     'Test device commands.'
 
@@ -82,14 +85,14 @@ class Tester(object):
         self.elapsed = []
         self.verbose = True
 
-    def test(self, command):
+    def test(self, command, rpc_id=None):
         'Test a command on the device.'
         if command is not None:
             kind = command['kind']
-            rpc_id = str(uuid.uuid4())
-            send(command, self.login_info, rpc_id)
-            self.outgoing[rpc_id] = {'kind': kind, 'time': time.time()}
-            self.wait_for_response(kind, rpc_id)
+            rpc_test_id = _new_uuid('test') if rpc_id is None else rpc_id
+            send(command, self.login_info, rpc_test_id)
+            self.outgoing[rpc_test_id] = {'kind': kind, 'time': time.time()}
+            self.wait_for_response(kind, rpc_test_id)
         else:
             print('command is {}'.format(command))
 
@@ -195,6 +198,7 @@ if __name__ == '__main__':
     SEQUENCE = app.find_sequence_by_name(name='test', get_info=app_login)
     TESTS = [
         {'command': device.log, 'kwargs': {'message': 'hi'}},
+        {'command': device.log, 'kwargs': {'message': 'hi', 'rpc_id': 'abcd'}},
         {'command': device.check_updates, 'kwargs': {'package': 'farmbot_os'}},
         {'command': device.emergency_lock, 'kwargs': {}},
         {'command': device.emergency_unlock, 'kwargs': {}},
@@ -233,7 +237,11 @@ if __name__ == '__main__':
     RUN = INPUT('Run device tests? (Y/n) ') or 'y'
     if RUN.lower() == 'y':
         for test in TESTS:
-            TEST.test(test['command'](**test['kwargs']))
+            try:
+                _rpc_id = test['kwargs'].pop('rpc_id')
+            except KeyError:
+                _rpc_id = None
+            TEST.test(test['command'](**test['kwargs']), rpc_id=_rpc_id)
         print('=' * 20)
         TEST.print_elapsed_time()
         print()

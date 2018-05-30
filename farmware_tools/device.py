@@ -73,7 +73,13 @@ def _send(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         'Send Celery Script to the device.'
-        return send_celery_script(function(*args, **kwargs))
+        try:
+            rpc_id = kwargs.pop('rpc_id')
+        except KeyError:
+            command = function(*args, **kwargs)
+        else:
+            command = rpc_wrapper(function(*args, **kwargs), rpc_id=rpc_id)
+        return send_celery_script(command)
     return wrapper
 
 def send_celery_script(command):
