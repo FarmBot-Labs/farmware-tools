@@ -79,7 +79,7 @@ class Tester(object):
         self.subscribe()
         self.outgoing = {}  # {'uuid': {'kind': 'wait', 'time': 0}}
         self.incoming = {}  # {'uuid': {'status': 'ok', 'time': 9}}
-        self.elasped = []
+        self.elapsed = []
         self.verbose = True
 
     def test(self, command):
@@ -107,8 +107,9 @@ class Tester(object):
             kind = parsed['kind']
             if kind == 'rpc_ok' or kind == 'rpc_error':
                 rpc_id = parsed['args']['label']
-                self.incoming[rpc_id] = {
-                    'status': kind.split('_')[-1], 'time': time.time()}
+                if rpc_id != 'ping':
+                    self.incoming[rpc_id] = {
+                        'status': kind.split('_')[-1], 'time': time.time()}
 
     def wait_for_response(self, kind, rpc_id):
         'Wait for the device response.'
@@ -134,11 +135,46 @@ class Tester(object):
                 print_kind, COLOR.red, COLOR.reset, time_diff))
             if self.verbose:
                 print()
-        self.elasped.append(time_diff)
+        self.elapsed.append(time_diff)
 
     def print_elapsed_time(self):
         'Calculate total test time.'
-        print('Total time elapsed: {:.2f}s'.format(sum(self.elasped)))
+        print('Total time elapsed: {:.2f}s'.format(sum(self.elapsed)))
+
+    def print_summary(self):
+        'Print test summary data table.'
+        table = '{:<40}{:<30}{:<10}{:>12}'
+        titles = ['uuid', 'kind', 'status', 'elapsed (ms)']
+        print(table.format(*titles))
+        underline = table.format(*['-' * 7 for _ in titles])
+        print(underline)
+        summary = {}
+        for rpc_uuid, in_data in self.incoming.items():
+            data = {}
+            data['uuid'] = rpc_uuid
+            try:
+                data['kind'] = self.outgoing[rpc_uuid]['kind']
+                out_time = self.outgoing[rpc_uuid]['time']
+            except KeyError:  # not found in outgoing RPCs
+                data['kind'] = ' '
+                data['elapsed'] = ' '
+            else:
+                elapsed_time_float = (in_data['time'] - out_time) * 1000
+                data['elapsed'] = str(int(round(elapsed_time_float)))
+            data['status'] = in_data['status']
+            summary[self.incoming[rpc_uuid]['time']] = data
+        in_times = sorted([rpc_in['time'] for rpc_in in self.incoming.values()])
+        for in_time in in_times:
+            data = summary[in_time]
+            print(table.format(
+                data['uuid'], data['kind'], data['status'], data['elapsed']))
+        print(underline)
+        all_ok = all(d['status'] == 'ok' for u, d in self.incoming.items())
+        print(table.format(
+            'count:', len(self.incoming),
+            'ok' if all_ok else 'error',
+            int(round(sum(self.elapsed) * 1000))))
+        print()
 
 if __name__ == '__main__':
     TEST = Tester()
@@ -201,6 +237,7 @@ if __name__ == '__main__':
         print('=' * 20)
         TEST.print_elapsed_time()
         print()
+    TEST.print_summary()
 
     # App tests
     TIMESTAMP = str(int(time.time()))
