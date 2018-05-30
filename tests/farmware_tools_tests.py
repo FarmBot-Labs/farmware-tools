@@ -60,18 +60,20 @@ def send(celery_script, credentials, rpc_id=''):
             'username': credentials['device_id'],
             'password': credentials['token']})
 
-def subscribe(host, user, password, callback):
+def subscribe(host, user, password, channel, callback):
     'Subscribe to the from_device channel.'
     client = mqtt.Client()
     client.username_pw_set(user, password)
     client.on_message = callback
     client.connect(host)
-    client.subscribe('bot/{}/from_device'.format(user))
+    client.subscribe(channel)
     client.loop_start()
     return client
 
 def _new_uuid(label=''):
     return str(uuid.uuid4())[:-len(label)] + label
+
+LOG_FW_CMD_CONFIG_KEY = 'firmware_output_log'
 
 class Tester(object):
     'Test device commands.'
@@ -82,26 +84,57 @@ class Tester(object):
         self.subscribe()
         self.outgoing = {}  # {'uuid': {'kind': 'wait', 'time': 0}}
         self.incoming = {}  # {'uuid': {'status': 'ok', 'time': 9}}
+        self.all_client_comms = {}  # {'uuid': 'kind'}
         self.elapsed = []
+        self.logs_string = ''
         self.verbose = True
 
-    def test(self, command, rpc_id=None):
+    def setup(self):
+        'Pre-test config.'
+        print('-' * 50)
+        print('TEST SETUP:')
+        app.put('fbos_config', payload={LOG_FW_CMD_CONFIG_KEY: True},
+                get_info=app_login)
+        self.wait_for_log(LOG_FW_CMD_CONFIG_KEY)
+        print('-' * 50)
+
+    def tear_down(self):
+        'Post-test config.'
+        print('-' * 50)
+        print('TEST TEAR DOWN:')
+        app.put('fbos_config', payload={LOG_FW_CMD_CONFIG_KEY: False},
+                get_info=app_login)
+        self.wait_for_log(LOG_FW_CMD_CONFIG_KEY)
+        print('-' * 50)
+
+    def test(self, command, expected_log=None, rpc_id=None):
         'Test a command on the device.'
         if command is not None:
             kind = command['kind']
+            self.logs_string = ''
             rpc_test_id = _new_uuid('test') if rpc_id is None else rpc_id
             send(command, self.login_info, rpc_test_id)
             self.outgoing[rpc_test_id] = {'kind': kind, 'time': time.time()}
             self.wait_for_response(kind, rpc_test_id)
+            if expected_log is not None:
+                self.wait_for_log(expected_log)
         else:
             print('command is {}'.format(command))
+
+    def _get_channel_name(self, topic):
+        return 'bot/{}/{}'.format(self.login_info['device_id'], topic)
 
     def subscribe(self):
         'Listen for responses.'
         user = self.login_info['device_id']
         host = self.login_info['mqtt_host']
         password = self.login_info['token']
-        subscribe(host, user, password, self.add_response)
+        response_channel = self._get_channel_name('from_device')
+        subscribe(host, user, password, response_channel, self.add_response)
+        client_channel = self._get_channel_name('from_clients')
+        subscribe(host, user, password, client_channel, self.add_client_comm)
+        log_channel = self._get_channel_name('logs')
+        subscribe(host, user, password, log_channel, self.add_log_message)
 
     def add_response(self, _client, _userdata, message):
         'Add a response to the list.'
@@ -113,6 +146,39 @@ class Tester(object):
                 if rpc_id != 'ping':
                     self.incoming[rpc_id] = {
                         'status': kind.split('_')[-1], 'time': time.time()}
+
+    def add_log_message(self, _client, _userdata, message):
+        'Add log message string to the list.'
+        if 'logs' in message.topic:
+            parsed = json.loads(message.payload.decode())
+            message = parsed['message']
+            self.logs_string += message
+
+    def add_client_comm(self, _client, _userdata, message):
+        'Add from_clients message to the list.'
+        if 'from_clients' in message.topic:
+            parsed = json.loads(message.payload.decode())
+            rpc_id = parsed['args']['label']
+            try:
+                kind = parsed['body'][0]['kind']
+            except (KeyError, TypeError):
+                pass
+            else:
+                self.all_client_comms[rpc_id] = kind
+
+    def wait_for_log(self, string):
+        'Wait for a specific log message string.'
+        begin = time.time()
+        while (time.time() - begin) < 10:
+            if string in self.logs_string:
+                print('{}`{}`{} spotted in logs.'.format(
+                    COLOR.bold, string, COLOR.reset))
+                break
+        else:
+            time_diff = time.time() - begin
+            print('{}TIMEOUT{} waiting for `{}` in logs {:.2f}s'.format(
+                COLOR.red, COLOR.reset, string, time_diff))
+        print()
 
     def wait_for_response(self, kind, rpc_id):
         'Wait for the device response.'
@@ -159,7 +225,10 @@ class Tester(object):
                 data['kind'] = self.outgoing[rpc_uuid]['kind']
                 out_time = self.outgoing[rpc_uuid]['time']
             except KeyError:  # not found in outgoing RPCs
-                data['kind'] = ' '
+                try:  # check all client RPCs
+                    data['kind'] = self.all_client_comms[rpc_uuid]
+                except KeyError:
+                    data['kind'] = ' '
                 data['elapsed'] = ' '
             else:
                 elapsed_time_float = (in_data['time'] - out_time) * 1000
@@ -201,51 +270,69 @@ if __name__ == '__main__':
         {'command': device.log, 'kwargs': {'message': 'hi', 'rpc_id': 'abcd'}},
         {'command': device.check_updates, 'kwargs': {'package': 'farmbot_os'}},
         {'command': device.emergency_lock, 'kwargs': {}},
-        {'command': device.emergency_unlock, 'kwargs': {}},
+        {'command': device.emergency_unlock, 'kwargs': {},
+         'expected': {'log': 'F09'}},
         {'command': device.execute, 'kwargs': {'sequence_id': SEQUENCE}},
         {'command': device.execute_script, 'kwargs': {'label': 'take-photo'}},
-        {'command': device.find_home, 'kwargs': {'axis': 'x'}},
-        {'command': device.home, 'kwargs': {'axis': 'z'}},
+        {'command': device.find_home, 'kwargs': {'axis': 'x'},
+         'expected': {'log': 'F11'}},
+        {'command': device.home, 'kwargs': {'axis': 'z'},
+         'expected': {'log': 'G00 Z0'}},
         {'command': device.install_farmware, 'kwargs': {'url': URL}},
         {'command': device.install_first_party_farmware, 'kwargs': {}},
         {'command': device.move_absolute,
-         'kwargs': {'location': COORDINATE, 'speed': 100, 'offset': OFFSET}},
+         'kwargs': {'location': COORDINATE, 'speed': 100, 'offset': OFFSET},
+         'expected': {'log': 'G00 X1.0 Y1.0 Z1.0'}},
         {'command': device.move_relative,
-         'kwargs': {'x': 0, 'y': 0, 'z': 0, 'speed': 100}},
+         'kwargs': {'x': 0, 'y': 0, 'z': 0, 'speed': 100},
+         'expected': {'log': 'G00 X1.0 Y1.0 Z0.0'}},
         {'command': device.read_pin,
-         'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0}},
+         'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0},
+         'expected': {'log': 'F42 P1 M0'}},
         {'command': device.read_status, 'kwargs': {}},
         {'command': device.register_gpio,
          'kwargs': {'pin_number': 1, 'sequence_id': SEQUENCE}},
         {'command': device.remove_farmware, 'kwargs': {'package': 'farmware'}},
         {'command': device.set_pin_io_mode,
-         'kwargs': {'pin_io_mode': 0, 'pin_number': 47}},
+         'kwargs': {'pin_io_mode': 0, 'pin_number': 47},
+         'expected': {'log': 'F43 P47 M0'}},
         {'command': device.set_servo_angle,
-         'kwargs': {'pin_number': 4, 'pin_value': 1}},
+         'kwargs': {'pin_number': 4, 'pin_value': 1},
+         'expected': {'log': 'F61 P4 V1'}},
         {'command': device.sync, 'kwargs': {}},
         {'command': device.take_photo, 'kwargs': {}},
-        {'command': device.toggle_pin, 'kwargs': {'pin_number': 1}},
+        {'command': device.toggle_pin, 'kwargs': {'pin_number': 1},
+         'expected': {'log': 'F41 P1 V'}},
         {'command': device.unregister_gpio, 'kwargs': {'pin_number': 1}},
         {'command': device.update_farmware, 'kwargs': {'package': 'take-photo'}},
         {'command': device.wait, 'kwargs': {'milliseconds': 100}},
         {'command': device.write_pin,
-         'kwargs': {'pin_number': 1, 'pin_value': 1, 'pin_mode': 0}},
-        {'command': device.zero, 'kwargs': {'axis': 'y'}},
+         'kwargs': {'pin_number': 1, 'pin_value': 1, 'pin_mode': 0},
+         'expected': {'log': 'F41 P1 V1 M0'}},
+        {'command': device.zero, 'kwargs': {'axis': 'y'},
+         'expected': {'log': 'F84 Y1'}},
     ]
 
     print()
     RUN = INPUT('Run device tests? (Y/n) ') or 'y'
     if RUN.lower() == 'y':
+        TEST.setup()
         for test in TESTS:
             try:
                 _rpc_id = test['kwargs'].pop('rpc_id')
             except KeyError:
                 _rpc_id = None
-            TEST.test(test['command'](**test['kwargs']), rpc_id=_rpc_id)
+            try:
+                _expected_log = test['expected']['log']
+            except KeyError:
+                _expected_log = None
+            TEST.test(test['command'](**test['kwargs']),
+                      rpc_id=_rpc_id, expected_log=_expected_log)
         print('=' * 20)
         TEST.print_elapsed_time()
         print()
-    TEST.print_summary()
+        TEST.tear_down()
+        TEST.print_summary()
 
     # App tests
     TIMESTAMP = str(int(time.time()))
