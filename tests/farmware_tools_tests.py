@@ -249,73 +249,79 @@ class Tester(object):
         print()
 
 if __name__ == '__main__':
-    TEST = Tester()
+    LOGIN_INFO = False
     def app_login():
         'Return app login info.'
         mqtt_login = TEST.login_info
         return {
             'token': mqtt_login['token'],
             'url': mqtt_login['url'],
-            'verbose': True
-        }
+            'verbose': True}
 
     # Device tests
-    COORDINATE = device.assemble_coordinate(1, 1, 1)
-    OFFSET = device.assemble_coordinate(0, 0, 0)
-    URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
-        'master/packages/take-photo/manifest.json'
-    SEQUENCE = app.find_sequence_by_name(name='test', get_info=app_login)
-    TESTS = [
-        {'command': device.log, 'kwargs': {'message': 'hi'}},
-        {'command': device.log, 'kwargs': {'message': 'hi', 'rpc_id': 'abcd'}},
-        {'command': device.check_updates, 'kwargs': {'package': 'farmbot_os'}},
-        {'command': device.emergency_lock, 'kwargs': {}},
-        {'command': device.emergency_unlock, 'kwargs': {},
-         'expected': {'log': 'F09'}},
-        {'command': device.execute, 'kwargs': {'sequence_id': SEQUENCE}},
-        {'command': device.execute_script, 'kwargs': {'label': 'take-photo'}},
-        {'command': device.find_home, 'kwargs': {'axis': 'x'},
-         'expected': {'log': 'F11'}},
-        {'command': device.home, 'kwargs': {'axis': 'z'},
-         'expected': {'log': 'G00 Z0'}},
-        {'command': device.install_farmware, 'kwargs': {'url': URL}},
-        {'command': device.install_first_party_farmware, 'kwargs': {}},
-        {'command': device.move_absolute,
-         'kwargs': {'location': COORDINATE, 'speed': 100, 'offset': OFFSET},
-         'expected': {'log': 'G00 X1.0 Y1.0 Z1.0'}},
-        {'command': device.move_relative,
-         'kwargs': {'x': 0, 'y': 0, 'z': 0, 'speed': 100},
-         'expected': {'log': 'G00 X1.0 Y1.0 Z0.0'}},
-        {'command': device.read_pin,
-         'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0},
-         'expected': {'log': 'F42 P1 M0'}},
-        {'command': device.read_status, 'kwargs': {}},
-        {'command': device.register_gpio,
-         'kwargs': {'pin_number': 1, 'sequence_id': SEQUENCE}},
-        {'command': device.remove_farmware, 'kwargs': {'package': 'farmware'}},
-        {'command': device.set_pin_io_mode,
-         'kwargs': {'pin_io_mode': 0, 'pin_number': 47},
-         'expected': {'log': 'F43 P47 M0'}},
-        {'command': device.set_servo_angle,
-         'kwargs': {'pin_number': 4, 'pin_value': 1},
-         'expected': {'log': 'F61 P4 V1'}},
-        {'command': device.sync, 'kwargs': {}},
-        {'command': device.take_photo, 'kwargs': {}},
-        {'command': device.toggle_pin, 'kwargs': {'pin_number': 1},
-         'expected': {'log': 'F41 P1 V'}},
-        {'command': device.unregister_gpio, 'kwargs': {'pin_number': 1}},
-        {'command': device.update_farmware, 'kwargs': {'package': 'take-photo'}},
-        {'command': device.wait, 'kwargs': {'milliseconds': 100}},
-        {'command': device.write_pin,
-         'kwargs': {'pin_number': 1, 'pin_value': 1, 'pin_mode': 0},
-         'expected': {'log': 'F41 P1 V1 M0'}},
-        {'command': device.zero, 'kwargs': {'axis': 'y'},
-         'expected': {'log': 'F84 Y1'}},
-    ]
-
-    print()
     RUN = INPUT('Run device tests? (Y/n) ') or 'y'
     if RUN.lower() == 'y':
+        if not LOGIN_INFO:
+            TEST = Tester()
+            LOGIN_INFO = True
+
+        COORDINATE = device.assemble_coordinate(1, 1, 1)
+        OFFSET = device.assemble_coordinate(0, 0, 0)
+        URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
+            'master/packages/take-photo/manifest.json'
+        SEQUENCE = app.find_sequence_by_name(name='test', get_info=app_login)
+        TESTS = [
+            {'command': device.log, 'kwargs': {'message': 'hi'}},
+            {'command': device.log,
+             'kwargs': {'message': 'hi', 'rpc_id': 'abcd'}},
+            {'command': device.check_updates,
+             'kwargs': {'package': 'farmbot_os'}},
+            {'command': device.emergency_lock, 'kwargs': {}},
+            {'command': device.emergency_unlock, 'kwargs': {},
+             'expected': {'log': 'F09'}},
+            {'command': device.execute, 'kwargs': {'sequence_id': SEQUENCE}},
+            {'command': device.execute_script,
+             'kwargs': {'label': 'take-photo'}},
+            {'command': device.find_home, 'kwargs': {'axis': 'x'},
+             'expected': {'log': 'F11'}},
+            {'command': device.home, 'kwargs': {'axis': 'z'},
+             'expected': {'log': 'G00 Z0'}},
+            {'command': device.install_farmware, 'kwargs': {'url': URL}},
+            {'command': device.install_first_party_farmware, 'kwargs': {}},
+            {'command': device.move_absolute,
+             'kwargs': {'location': COORDINATE, 'speed': 100, 'offset': OFFSET},
+             'expected': {'log': 'G00 X1.0 Y1.0 Z1.0'}},
+            {'command': device.move_relative,
+             'kwargs': {'x': 0, 'y': 0, 'z': 0, 'speed': 100},
+             'expected': {'log': 'G00 X1.0 Y1.0 Z0.0'}},
+            {'command': device.read_pin,
+             'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0},
+             'expected': {'log': 'F42 P1 M0'}},
+            {'command': device.read_status, 'kwargs': {}},
+            {'command': device.register_gpio,
+             'kwargs': {'pin_number': 1, 'sequence_id': SEQUENCE}},
+            {'command': device.remove_farmware,
+             'kwargs': {'package': 'farmware'}},
+            {'command': device.set_pin_io_mode,
+             'kwargs': {'pin_io_mode': 0, 'pin_number': 47},
+             'expected': {'log': 'F43 P47 M0'}},
+            {'command': device.set_servo_angle,
+             'kwargs': {'pin_number': 4, 'pin_value': 1},
+             'expected': {'log': 'F61 P4 V1'}},
+            {'command': device.sync, 'kwargs': {}},
+            {'command': device.take_photo, 'kwargs': {}},
+            {'command': device.toggle_pin, 'kwargs': {'pin_number': 1},
+             'expected': {'log': 'F41 P1 V'}},
+            {'command': device.unregister_gpio, 'kwargs': {'pin_number': 1}},
+            {'command': device.update_farmware,
+             'kwargs': {'package': 'take-photo'}},
+            {'command': device.wait, 'kwargs': {'milliseconds': 100}},
+            {'command': device.write_pin,
+             'kwargs': {'pin_number': 1, 'pin_value': 1, 'pin_mode': 0},
+             'expected': {'log': 'F41 P1 V1 M0'}},
+            {'command': device.zero, 'kwargs': {'axis': 'y'},
+             'expected': {'log': 'F84 Y1'}},
+        ]
         TEST.setup()
         for test in TESTS:
             try:
@@ -335,9 +341,12 @@ if __name__ == '__main__':
         TEST.print_summary()
 
     # App tests
-    TIMESTAMP = str(int(time.time()))
     RUN = INPUT('Run app tests? (Y/n) ') or 'y'
     if RUN.lower() == 'y':
+        if not LOGIN_INFO:
+            TEST = Tester()
+            LOGIN_INFO = True
+        TIMESTAMP = str(int(time.time()))
         print(app.log('hi', get_info=app_login))
         print(app.request('GET', 'tools', get_info=app_login))
         print(app.get('sensors', get_info=app_login))
@@ -383,17 +392,6 @@ if __name__ == '__main__':
             repr(expected), repr(received))
         print('get_config_value result {} == {}'.format(
             repr(received), repr(expected)))
-    os.environ['farmware_name_int_input'] = '10'
-    os.environ['farmware_name_str_input'] = 'ten'
-    _print_header('farmware_tools.get_config_value():')
-    _test_get_config('farmware_name', 'int_input', None, 10)
-    _test_get_config('Farmware Name', 'int_input', int, 10)
-    _test_get_config('farmware-name', 'int_input', str, '10')
-    _test_get_config('farmware_name', 'str_input', str, 'ten')
-    _test_get_config('Farmware Name', 'twenty', None, 20)  # default value
-    os.environ['farmware_name_twenty'] = 'twenty'
-    _test_get_config('Farmware Name', 'twenty', str, 'twenty')  # set value
-
     def _test_get_value(func, key, expected):
         def _get_state():
             return {
@@ -402,12 +400,26 @@ if __name__ == '__main__':
         value = func(key, _get_bot_state=_get_state)
         assert value == expected
         print('`{}` value {} == {}'.format(key, value, expected))
-    _print_header('device.get_current_position():')
-    _test_get_value(device.get_current_position, 'all', {'y': 1, 'z': 0})
-    _test_get_value(device.get_current_position, 'x', None)
-    _test_get_value(device.get_current_position, 'y', 1)
-    _print_header('device.get_pin_value():')
-    _test_get_value(device.get_pin_value, 14, None)
-    _test_get_value(device.get_pin_value, 13, 1)
+
+    RUN = INPUT('Run other tests? (Y/n) ') or 'y'
+    if RUN.lower() == 'y':
+        os.environ['farmware_name_int_input'] = '10'
+        os.environ['farmware_name_str_input'] = 'ten'
+        _print_header('farmware_tools.get_config_value():')
+        _test_get_config('farmware_name', 'int_input', None, 10)
+        _test_get_config('Farmware Name', 'int_input', int, 10)
+        _test_get_config('farmware-name', 'int_input', str, '10')
+        _test_get_config('farmware_name', 'str_input', str, 'ten')
+        _test_get_config('Farmware Name', 'twenty', None, 20)  # default value
+        os.environ['farmware_name_twenty'] = 'twenty'
+        _test_get_config('Farmware Name', 'twenty', str, 'twenty')  # set value
+
+        _print_header('device.get_current_position():')
+        _test_get_value(device.get_current_position, 'all', {'y': 1, 'z': 0})
+        _test_get_value(device.get_current_position, 'x', None)
+        _test_get_value(device.get_current_position, 'y', 1)
+        _print_header('device.get_pin_value():')
+        _test_get_value(device.get_pin_value, 14, None)
+        _test_get_value(device.get_pin_value, 13, 1)
     print()
     print('tests complete.')
