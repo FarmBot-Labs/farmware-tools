@@ -88,8 +88,7 @@ class Tester(object):
         self.incoming = {}  # {'uuid': {'status': 'ok', 'time': 9}}
         self.all_client_comms = {}  # {'uuid': 'kind'}
         self.elapsed = []
-        self.logs_string = ''
-        self.status = None
+        self.response_data = {'logs_string': '', 'status': None}
 
     def setup(self):
         'Pre-test config.'
@@ -119,7 +118,7 @@ class Tester(object):
         'Test a command on the device.'
         if command is not None:
             kind = command['kind']
-            self.logs_string = ''
+            self.response_data['logs_string'] = ''
             rpc_test_id = _new_uuid('test') if rpc_id is None else rpc_id
             send(command, self.login_info, rpc_test_id)
             self.outgoing[rpc_test_id] = {'kind': kind, 'time': time.time()}
@@ -174,7 +173,7 @@ class Tester(object):
         if 'logs' in message.topic:
             parsed = json.loads(message.payload.decode())
             message = parsed['message']
-            self.logs_string += message
+            self.response_data['logs_string'] += message
 
     def add_client_comm(self, _client, _userdata, message):
         'Add from_clients message to the list.'
@@ -192,7 +191,7 @@ class Tester(object):
         'Update last status received.'
         if 'status' in message.topic:
             parsed = json.loads(message.payload.decode())
-            self.status = parsed
+            self.response_data['status'] = parsed
 
     def wait_for_log(self, string, count_time=True):
         'Wait for a specific log message string.'
@@ -206,7 +205,7 @@ class Tester(object):
         begin = time.time()
         print('expected logs:'.upper(), end=' ')
         while (time.time() - begin) < TIMEOUT_SECONDS:
-            if string in self.logs_string:
+            if string in self.response_data['logs_string']:
                 time_diff = _result('ok', begin)
                 break
         else:
@@ -233,7 +232,7 @@ class Tester(object):
         begin = time.time()
         print('expected status:'.upper(), end=' ')
         while (time.time() - begin) < TIMEOUT_SECONDS:
-            if _extract_value(self.status) == value:
+            if _extract_value(self.response_data['status']) == value:
                 time_diff = _result('ok', begin)
                 break
         else:
