@@ -24,7 +24,12 @@ def _check_celery_script(command):
         _cs_error('celery script', command)
         _on_error()
     else:
-        return kind, args
+        body = command.get('body')
+        if body is not None:
+            if not isinstance(body, list):
+                _cs_error(kind, body)
+                _on_error()
+        return kind, args, body
 
 def rpc_wrapper(command, rpc_id=''):
     'Wrap a command in `rpc_request`.'
@@ -84,19 +89,22 @@ def _send(function):
 
 def send_celery_script(command):
     'Send a celery script command.'
-    kind, args = _check_celery_script(command)
+    kind, args, body = _check_celery_script(command)
     response = post('celery_script', command)
     if response is None:
-        print(COLOR.colorize_celery_script(kind, args))
+        print(COLOR.colorize_celery_script(kind, args, body))
     return command
 
-def log(message, message_type='info'):
+def log(message, message_type='info', channels=None):
     'Send a send_message command to post a log to the Web App.'
-    return send_message(message, message_type)
+    return send_message(message, message_type, channels)
 
-def _assemble(kind, args):
+def _assemble(kind, args, body=None):
     'Assemble a celery script command.'
-    return {'kind': kind, 'args': args}
+    if body is None:
+        return {'kind': kind, 'args': args}
+    else:
+        return {'kind': kind, 'args': args, 'body': body}
 
 def _error(error_text):
     try:
@@ -130,6 +138,18 @@ def assemble_coordinate(coord_x, coord_y, coord_z):
         'kind': 'coordinate',
         'args': {'x': coord_x, 'y': coord_y, 'z': coord_z}}
 
+def _assemble_channel(name):
+    'Assemble a channel body item (for `send_message`).'
+    return {
+        'kind': 'channel',
+        'args': {'channel_name': name}}
+
+def assemble_pair(label, value):
+    'Assemble a pair body item.'
+    return {
+        'kind': 'pair',
+        'args': {'label': label, 'value': value}}
+
 def _check_coordinate(coordinate):
     coordinate_ok = True
     try:
@@ -143,14 +163,24 @@ def _check_coordinate(coordinate):
     return coordinate_ok
 
 @_send
-def send_message(message, message_type):
+def send_message(message, message_type, channels=None):
     'Send command: send_message'
     kind = 'send_message'
     allowed_types = ['success', 'busy', 'warn', 'error', 'info', 'fun', 'debug']
     args_ok = _check_arg(kind, message_type, allowed_types)
+    allowed_channels = ['ticker', 'toast', 'email', 'espeak']
+    if channels is not None:
+        for channel in channels:
+            args_ok = _check_arg(kind, channel, allowed_channels)
     if args_ok:
-        return _assemble(kind, {'message': message,
-                                'message_type': message_type})
+        if channels is None:
+            return _assemble(
+                kind, {'message': message, 'message_type': message_type})
+        else:
+            return _assemble(
+                kind,
+                args={'message': message, 'message_type': message_type},
+                body=[_assemble_channel(channel) for channel in channels])
 
 @_send
 def calibrate(axis):
@@ -188,10 +218,22 @@ def execute(sequence_id):
     return _assemble(kind, {'sequence_id': sequence_id})
 
 @_send
-def execute_script(label):
+def execute_script(label, inputs=None):
     'Send command: execute_script'
     kind = 'execute_script'
-    return _assemble(kind, {'label': label})
+    args = {'label': label}
+    if inputs is None:
+        return _assemble(kind, args)
+    else:
+        farmware = label.replace(' ', '_').replace('-', '_').lower()
+        body = []
+        for key, value in inputs.items():
+            if key.startswith(farmware):
+                input_name = key
+            else:
+                input_name = '{}_{}'.format(farmware, key)
+            body.append(assemble_pair(input_name, value))
+        return _assemble(kind, args, body)
 
 @_send
 def factory_reset(package):
@@ -315,6 +357,13 @@ def set_servo_angle(pin_number, pin_value):
     if args_ok:
         return _assemble(kind, {'pin_number': pin_number,
                                 'pin_value': pin_value})
+
+@_send
+def set_user_env(key, value):
+    'Send command: set_user_env'
+    kind = 'set_user_env'
+    body = [assemble_pair(key, value)]
+    return _assemble(kind, {}, body)
 
 @_send
 def sync():

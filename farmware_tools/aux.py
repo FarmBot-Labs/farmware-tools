@@ -9,17 +9,21 @@ class Color(object):
 
     def __init__(self):
         self.green = self.get_color_code('green')
+        self.red = self.get_color_code('red')
+        self.yellow = self.get_color_code('yellow')
         self.magenta = self.get_color_code('magenta')
         self.cyan = self.get_color_code('cyan')
-        self.red = self.get_color_code('red')
+        self.blue = self.get_color_code('blue')
         self.bold = self.get_color_code('bold')
         self.reset = self.get_color_code('reset')
 
     color_number = {
+        'green': 32,
         'red': 31,
+        'yellow': 33,
         'magenta': 35,
         'cyan': 36,
-        'green': 32,
+        'blue': 34,
         'reset': 0,
         'bold': 1,
         }
@@ -28,12 +32,18 @@ class Color(object):
         'Get a color code to use in a string.'
         return '\033[{}m'.format(self.color_number[string])
 
-    def colorize_celery_script(self, kind, args):
+    def colorize_celery_script(self, kind, args, body=None):
         'Color terminal printing of Celery Script.'
-        to_print = "{{'kind': '{magenta}{kind}{reset}', " \
-        "'args': {cyan}{args}{reset}}}".format(
-            magenta=self.magenta, cyan=self.cyan, reset=self.reset,
-            kind=kind, args=args)
+        colorized_kind = "'kind': '{magenta}{kind}{reset}'".format(
+            magenta=self.magenta, kind=kind, reset=self.reset)
+        colorized_args = ", 'args': {cyan}{args}{reset}".format(
+            cyan=self.cyan, args=args, reset=self.reset)
+        colorized_body = ", 'body': {blue}{body}{reset}".format(
+            blue=self.blue, body=body, reset=self.reset)
+        to_print = "{{{kind}{args}{body}}}".format(
+            kind=colorized_kind,
+            args=colorized_args,
+            body=colorized_body if body is not None else '')
         return to_print
 
     def error(self, text):

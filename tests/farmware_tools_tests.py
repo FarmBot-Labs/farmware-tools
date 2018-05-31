@@ -95,9 +95,15 @@ class Tester(object):
         'Pre-test config.'
         print('-' * 50)
         print('TEST SETUP:')
-        app.put('fbos_config', payload={LOG_FW_CMD_CONFIG_KEY: True},
-                get_info=app_login)
-        self.wait_for_log(LOG_FW_CMD_CONFIG_KEY, count_time=False)
+        fw_out_log_opt = app.get_property(
+            'fbos_config', LOG_FW_CMD_CONFIG_KEY, get_info=app_login)
+        if fw_out_log_opt:
+            print('{}`{}`{} option already enabled.'.format(
+                COLOR.bold, LOG_FW_CMD_CONFIG_KEY, COLOR.reset))
+        else:
+            app.put('fbos_config', payload={LOG_FW_CMD_CONFIG_KEY: True},
+                    get_info=app_login)
+            self.wait_for_log(LOG_FW_CMD_CONFIG_KEY, count_time=False)
         print('-' * 50)
 
     def teardown(self):
@@ -343,6 +349,8 @@ if __name__ == '__main__':
         TESTS = [
             {'command': device.log, 'kwargs': {'message': 'hi'}},
             {'command': device.log,
+             'kwargs': {'message': 'hi', 'channels': ['toast']}},
+            {'command': device.log,
              'kwargs': {'message': 'hi', 'rpc_id': 'abcd'}},
             {'command': device.check_updates,
              'kwargs': {'package': 'farmbot_os'}},
@@ -356,7 +364,9 @@ if __name__ == '__main__':
                  'value': False}]}},
             {'command': device.execute, 'kwargs': {'sequence_id': SEQUENCE}},
             {'command': device.execute_script,
-             'kwargs': {'label': 'take-photo'}},
+             'kwargs': {
+                 'label': 'take-photo',
+                 'inputs': {'input_1': 1, 'take_photo_input_2': 'two'}}},
             {'command': device.find_home, 'kwargs': {'axis': 'y'},
              'expected': {'log': ['F12']}},
             {'command': device.home, 'kwargs': {'axis': 'z'},
@@ -383,6 +393,8 @@ if __name__ == '__main__':
             {'command': device.set_servo_angle,
              'kwargs': {'pin_number': 4, 'pin_value': 1},
              'expected': {'log': ['F61 P4 V1']}},
+            {'command': device.set_user_env,
+             'kwargs': {'key': 'test_key', 'value': 1}},
             {'command': device.sync, 'kwargs': {},
              'expected': {'status': [{
                  'keys': ['informational_settings', 'sync_status'],
