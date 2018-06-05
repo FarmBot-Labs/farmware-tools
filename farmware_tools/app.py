@@ -25,7 +25,14 @@ def _get_required_info():
 
 def request(raw_method, endpoint, _id=None, payload=None,
             get_info=_get_required_info):
-    'Send an HTTP request to the FarmBot Web App.'
+    """Send an HTTP request to the FarmBot Web App.
+
+    Args:
+        raw_method (str): HTTP request method ('POST', 'GET', etc.)
+        endpoint (str): Web App endpoint ('sequences', 'logs', etc.)
+        _id (int, optional): Web App resource ID. Defaults to None.
+        payload (dict, optional): i.e., {'name': 'new tool'}
+    """
     method = raw_method.upper()
     full_endpoint = endpoint
     if _id is not None:
@@ -65,65 +72,120 @@ def request(raw_method, endpoint, _id=None, payload=None,
     return response.json()
 
 def post(endpoint, payload, get_info=_get_required_info):
-    'Send an POST HTTP request to the FarmBot Web App.'
+    """Send a POST HTTP request to the FarmBot Web App.
+
+    Args:
+        endpoint (str): FarmBot Web App endpoint.
+        payload (dict): i.e., {'name': 'new tool'}
+    """
     kwargs = {'payload': payload, 'get_info': get_info}
     return request('POST', endpoint, **kwargs)
 
 def get(endpoint, _id=None, get_info=_get_required_info):
-    'Send an GET HTTP request to the FarmBot Web App.'
+    """Send a GET HTTP request to the FarmBot Web App.
+
+    Args:
+        endpoint (str): FarmBot Web App endpoint.
+        _id (int, optional): ID of a resource to GET. Defaults to None.
+    """
     kwargs = {'_id': _id, 'get_info': get_info}
     return request('GET', endpoint, **kwargs)
 
 def patch(endpoint, _id=None, payload=None, get_info=_get_required_info):
-    'Send an PATCH HTTP request to the FarmBot Web App.'
+    """Send a PATCH HTTP request to the FarmBot Web App.
+
+    Args:
+        endpoint (str): FarmBot Web App endpoint.
+        _id (int, optional): ID of a resource to PATCH. Defaults to None.
+        payload (dict, optional): Defaults to None.
+    """
     kwargs = {'_id': _id, 'payload': payload, 'get_info': get_info}
     return request('PATCH', endpoint, **kwargs)
 
 def put(endpoint, _id=None, payload=None, get_info=_get_required_info):
-    'Send an PUT HTTP request to the FarmBot Web App.'
+    """Send a PUT HTTP request to the FarmBot Web App.
+
+    Args:
+        endpoint (str): FarmBot Web App endpoint.
+        _id (int, optional): ID of a resource to PUT. Defaults to None.
+        payload (dict, optional): Defaults to None.
+    """
     kwargs = {'_id': _id, 'payload': payload, 'get_info': get_info}
     return request('PUT', endpoint, **kwargs)
 
 def delete(endpoint, _id=None, get_info=_get_required_info):
-    'Send an DELETE HTTP request to the FarmBot Web App.'
+    """Send a DELETE HTTP request to the FarmBot Web App.
+
+    Args:
+        endpoint (str): FarmBot Web App endpoint.
+        _id (int, optional): ID of a resource to DELETE. Defaults to None.
+    """
     kwargs = {'_id': _id, 'get_info': get_info}
     return request('DELETE', endpoint, **kwargs)
 
 def log(message, message_type='info', get_info=_get_required_info):
-    'POST a log message to the Web App.'
+    """POST a log message to the Web App.
+
+    Warning: May not appear in the browser until a refresh.
+    Use `device.log` instead when possible.
+
+    Args:
+        message (str): Log message contents.
+        message_type (str, optional): One of device.ALLOWED_MESSAGE_TYPES.
+            Defaults to 'info'.
+    """
     payload = {'message': message, 'type': message_type}
     return post('logs', payload=payload, get_info=get_info)
 
 def search_points(search_payload, get_info=_get_required_info):
-    'Use a search term to get a filtered selection of points from the web app.'
+    """Use a search term to get a filtered selection of points from the web app.
+
+    Args:
+        search_payload (dict): i.e., {'x': 5}
+            Allowed keys include:
+                name, pointer_type, plant_stage, openfarm_slug, meta,
+                radius, x, y, z
+    """
     return post('points/search', payload=search_payload, get_info=get_info)
 
 def download_plants(get_info=_get_required_info):
-    'Get plant data from the web app.'
+    """Get plant data from the web app."""
     search_payload = {'pointer_type': 'Plant'}
     return search_points(search_payload, get_info)
 
 def get_points(get_info=_get_required_info):
-    'Get generic point data from the web app.'
+    """Get generic point data from the web app."""
     search_payload = {'pointer_type': 'GenericPointer'}
     return search_points(search_payload, get_info)
 
 def get_plants(get_info=_get_required_info):
-    'Get plant data from the web app.'
+    """Get plant data from the web app."""
     return download_plants(get_info)
 
 def get_toolslots(get_info=_get_required_info):
-    'Get tool slot data from the web app.'
+    """Get tool slot data from the web app."""
     search_payload = {'pointer_type': 'ToolSlot'}
     return search_points(search_payload, get_info)
 
 def get_property(endpoint, field, _id=None, get_info=_get_required_info):
-    'Get the value of a specific property field of a web app record.'
+    """Get the value of a specific property field of a web app record.
+
+    Args:
+        endpoint (str): FarmBot Web App endpoint.
+        field (str): Resource propery key for which the value is desired.
+        _id (int, optional): ID of a resource. Defaults to None.
+    """
     record = get(endpoint, _id=_id, get_info=get_info)
     return record[field]
 
 def add_plant(x, y, get_info=_get_required_info, **kwargs):
-    'Add a plant to the garden map.'
+    """Add a plant to the garden map.
+
+    Args:
+        x (int): X Coordinate.
+        y (int): Y Coordinate.
+        **kwargs: name, openfarm_slug, radius, z, planted_at, plant_stage
+    """
     new_plant = {'pointer_type': 'Plant', 'x': x, 'y': y}
     for key, value in kwargs.items():
         if value is not None:
@@ -131,7 +193,11 @@ def add_plant(x, y, get_info=_get_required_info, **kwargs):
     return post('points', payload=new_plant, get_info=get_info)
 
 def find_sequence_by_name(name, get_info=_get_required_info):
-    'Find the sequence_id for a given sequence name.'
+    """Find the sequence_id for a given sequence name.
+
+    Args:
+        name (str): Sequence name.
+    """
     sequences = get('sequences', get_info=get_info)
     sequence_lookup = {s['name']: s['id'] for s in sequences}
     try:

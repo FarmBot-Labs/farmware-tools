@@ -5,7 +5,7 @@
 from __future__ import print_function
 
 class Color(object):
-    'Color codes for colorizing terminal output.'
+    """Color codes for colorizing terminal output."""
 
     def __init__(self):
         self.green = self.get_color_code('green')
@@ -29,11 +29,21 @@ class Color(object):
         }
 
     def get_color_code(self, string):
-        'Get a color code to use in a string.'
+        """Get a color code to use in a string.
+
+        Args:
+            string (str): Color name (key of color_number).
+        """
         return '\033[{}m'.format(self.color_number[string])
 
     def colorize_celery_script(self, kind, args, body=None):
-        'Color terminal printing of Celery Script.'
+        """Color terminal printing of Celery Script.
+
+        Args:
+            kind (str): Celery Script kind.
+            args (dict): Celery Script args.
+            body (list, optional): Celery Script body. Defaults to None.
+        """
         colorized_kind = "'kind': '{magenta}{kind}{reset}'".format(
             magenta=self.magenta, kind=kind, reset=self.reset)
         colorized_args = ", 'args': {cyan}{args}{reset}".format(
@@ -47,17 +57,32 @@ class Color(object):
         return to_print
 
     def error(self, text):
-        'Make error text red.'
+        """Make error text red.
+
+        Args:
+            text (str): Text to color red.
+        """
         return '{red}{text}{reset}'.format(
             red=self.red, text=text, reset=self.reset)
 
     def make_bold(self, text):
-        'Make text bold.'
+        """Make text bold.
+
+        Args:
+            text (str): Text to make bold.
+        """
         return '{bold}{text}{reset}'.format(
             bold=self.bold, text=text, reset=self.reset)
 
     def colorize_response_code(self, status_code):
-        'Color an HTTP response status code.'
+        """Color an HTTP response status code.
+
+        Args:
+            status_code (int): HTTP status code to color.
+                4xx -> red
+                2xx -> green
+                other -> bold
+        """
         if str(status_code).startswith('4'):
             color = self.red
         elif str(status_code).startswith('2'):

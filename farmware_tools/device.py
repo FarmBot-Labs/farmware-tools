@@ -11,6 +11,10 @@ from .aux import Color
 
 COLOR = Color()
 ALLOWED_AXIS_VALUES = ['x', 'y', 'z', 'all']
+ALLOWED_MESSAGE_TYPES = [
+    'success', 'busy', 'warn', 'error', 'info', 'fun', 'debug']
+ALLOWED_MESSAGE_CHANNELS = ['ticker', 'toast', 'email', 'espeak']
+ALLOWED_PACKAGES = ['farmbot_os', 'arduino_firmware', 'farmware']
 
 def _on_error():
     sys.exit(1)
@@ -32,7 +36,7 @@ def _check_celery_script(command):
         return kind, args, body
 
 def rpc_wrapper(command, rpc_id=''):
-    'Wrap a command in `rpc_request`.'
+    """Wrap a command in `rpc_request` with the given `rpc_id`."""
     return {'kind': 'rpc_request', 'args': {'label': rpc_id}, 'body': [command]}
 
 def _device_request(method, endpoint, payload=None):
@@ -57,17 +61,36 @@ def _device_request(method, endpoint, payload=None):
         _on_error()
     return response
 
-def post(endpoint, payload):
-    'Post a payload to the device Farmware API.'
+def _post(endpoint, payload):
+    """Post a payload to the device Farmware API.
+
+    Since the only currently available endpoint is 'celery_script',
+    use `send_celery_script(command)` instead.
+
+    Args:
+        endpoint (str): i.e., 'celery_script'
+        payload (dict): i.e., {'kind': 'take_photo', 'args': {}}
+    Returns:
+        requests response object
+    """
     return _device_request('POST', endpoint, payload)
 
-def get(endpoint):
-    'Get info from the device Farmware API.'
+def _get(endpoint):
+    """Get info from the device Farmware API.
+
+    Since the only currently available endpoint is 'bot/state',
+    use `get_bot_state()` instead.
+
+    Args:
+        endpoint (str): i.e., 'bot/state'
+    Returns:
+        requests response object
+    """
     return _device_request('GET', endpoint)
 
 def get_bot_state():
-    'Get the device state.'
-    bot_state = get('bot/state')
+    """Get the device state."""
+    bot_state = _get('bot/state')
     if bot_state is None:
         _error('Device info could not be retrieved.')
         _on_error()
@@ -88,15 +111,23 @@ def _send(function):
     return wrapper
 
 def send_celery_script(command):
-    'Send a celery script command.'
+    """Send a Celery Script command."""
     kind, args, body = _check_celery_script(command)
-    response = post('celery_script', command)
+    response = _post('celery_script', command)
     if response is None:
         print(COLOR.colorize_celery_script(kind, args, body))
     return command
 
 def log(message, message_type='info', channels=None):
-    'Send a send_message command to post a log to the Web App.'
+    """Send a send_message command to post a log to the Web App.
+
+    Args:
+        message (str): log message contents
+        message_type (str, optional): One of ALLOWED_MESSAGE_TYPES.
+            Defaults to 'info'.
+        channels (list, optional): Any of ALLOWED_MESSAGE_CHANNELS.
+            Defaults to None.
+    """
     return send_message(message, message_type, channels)
 
 def _assemble(kind, args, body=None):
@@ -133,7 +164,7 @@ def _check_arg(kind, arg, accepted):
     return arg_ok
 
 def assemble_coordinate(coord_x, coord_y, coord_z):
-    'Assemble a coordinate.'
+    """Assemble a coordinate Celery Script node from x, y, and z."""
     return {
         'kind': 'coordinate',
         'args': {'x': coord_x, 'y': coord_y, 'z': coord_z}}
@@ -145,7 +176,7 @@ def _assemble_channel(name):
         'args': {'channel_name': name}}
 
 def assemble_pair(label, value):
-    'Assemble a pair body item.'
+    """Assemble a 'pair' Celery Script node (for use as a body item)."""
     return {
         'kind': 'pair',
         'args': {'label': label, 'value': value}}
@@ -164,14 +195,20 @@ def _check_coordinate(coordinate):
 
 @_send
 def send_message(message, message_type, channels=None):
-    'Send command: send_message'
+    """Send command: send_message.
+
+    Args:
+        message (str): log message contents
+        message_type (str, optional): One of ALLOWED_MESSAGE_TYPES.
+            Defaults to 'info'.
+        channels (list, optional): Any of ALLOWED_MESSAGE_CHANNELS.
+            Defaults to None.
+    """
     kind = 'send_message'
-    allowed_types = ['success', 'busy', 'warn', 'error', 'info', 'fun', 'debug']
-    args_ok = _check_arg(kind, message_type, allowed_types)
-    allowed_channels = ['ticker', 'toast', 'email', 'espeak']
+    args_ok = _check_arg(kind, message_type, ALLOWED_MESSAGE_TYPES)
     if channels is not None:
         for channel in channels:
-            args_ok = _check_arg(kind, channel, allowed_channels)
+            args_ok = _check_arg(kind, channel, ALLOWED_MESSAGE_CHANNELS)
     if args_ok:
         if channels is None:
             return _assemble(
@@ -184,7 +221,11 @@ def send_message(message, message_type, channels=None):
 
 @_send
 def calibrate(axis):
-    'Send command: calibrate'
+    """Send command: calibrate.
+
+    Args:
+        axis (str): One of ALLOWED_AXIS_VALUES.
+    """
     kind = 'calibrate'
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
@@ -192,34 +233,48 @@ def calibrate(axis):
 
 @_send
 def check_updates(package):
-    'Send command: check_updates'
+    """Send command: check_updates.
+
+    Args:
+        package (str): One of ALLOWED_PACKAGES.
+    """
     kind = 'check_updates'
-    args_ok = _check_arg(kind, package,
-                         ['farmbot_os', 'arduino_firmware', 'farmware'])
+    args_ok = _check_arg(kind, package, ALLOWED_PACKAGES)
     if args_ok:
         return _assemble(kind, {'package': package})
 
 @_send
 def emergency_lock():
-    'Send command: emergency_lock'
+    """Send command: emergency_lock."""
     kind = 'emergency_lock'
     return _assemble(kind, {})
 
 @_send
 def emergency_unlock():
-    'Send command: emergency_unlock'
+    """Send command: emergency_unlock."""
     kind = 'emergency_unlock'
     return _assemble(kind, {})
 
 @_send
 def execute(sequence_id):
-    'Send command: execute'
+    """Send command: execute.
+
+    Args:
+        sequence_id (int): Web App Sequence ID.
+            Sequence must be synced to FarmBot OS before execution.
+    """
     kind = 'execute'
     return _assemble(kind, {'sequence_id': sequence_id})
 
 @_send
 def execute_script(label, inputs=None):
-    'Send command: execute_script'
+    """Send command: execute_script (Run Farmware).
+
+    Args:
+        label (str): Name of the Farmware to execute. Must be installed.
+        inputs (dict, optional): Farmware configs, i.e., {'input_0': 0}.
+            Defaults to None.
+    """
     kind = 'execute_script'
     args = {'label': label}
     if inputs is None:
@@ -237,15 +292,23 @@ def execute_script(label, inputs=None):
 
 @_send
 def factory_reset(package):
-    'Send command: factory_reset'
+    """Send command: factory_reset.
+
+    Args:
+        package (str): One of ALLOWED_PACKAGES.
+    """
     kind = 'factory_reset'
-    args_ok = _check_arg(kind, package, ['farmbot_os', 'arduino_firmware'])
+    args_ok = _check_arg(kind, package, ALLOWED_PACKAGES)
     if args_ok:
         return _assemble(kind, {'package': package})
 
 @_send
 def find_home(axis):
-    'Send command: find_home'
+    """Send command: find_home.
+
+    Args:
+        axis (str): One of ALLOWED_AXIS_VALUES.
+    """
     kind = 'find_home'
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
@@ -253,7 +316,11 @@ def find_home(axis):
 
 @_send
 def home(axis):
-    'Send command: home'
+    """Send command: home.
+
+    Args:
+        axis (str): One of ALLOWED_AXIS_VALUES.
+    """
     kind = 'home'
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
@@ -261,19 +328,32 @@ def home(axis):
 
 @_send
 def install_farmware(url):
-    'Send command: install_farmware'
+    """Send command: install_farmware.
+
+    Args:
+        url (str): URL for the Farmware's manifest.
+    """
     kind = 'install_farmware'
     return _assemble(kind, {'url': url})
 
 @_send
 def install_first_party_farmware():
-    'Send command: install_first_party_farmware'
+    """Send command: install_first_party_farmware."""
     kind = 'install_first_party_farmware'
     return _assemble(kind, {})
 
 @_send
 def move_absolute(location, speed, offset):
-    'Send command: move_absolute'
+    """Send command: move_absolute.
+
+    Celery Script 'coordinate' nodes can be assembled using
+    `assemble_coordinate(coord_x, coord_y, coord_z)`.
+
+    Args:
+        location (dict): Celery Script 'coordinate' node.
+        speed (int): Percent of max speed.
+        offset (dict): Celery Script 'coordinate' node.
+    """
     kind = 'move_absolute'
     args_ok = _check_coordinate(location)
     args_ok = _check_coordinate(offset)
@@ -285,7 +365,14 @@ def move_absolute(location, speed, offset):
 
 @_send
 def move_relative(x, y, z, speed):
-    'Send command: move_relative'
+    """Send command: move_relative.
+
+    Args:
+        x (int): Distance.
+        y (int): Distance.
+        z (int): Distance.
+        speed (int): Percent of max speed.
+    """
     kind = 'move_relative'
     args_ok = _check_arg(kind, speed, range(1, 101))
     if args_ok:
@@ -296,13 +383,19 @@ def move_relative(x, y, z, speed):
 
 @_send
 def power_off():
-    'Send command: power_off'
+    """Send command: power_off."""
     kind = 'power_off'
     return _assemble(kind, {})
 
 @_send
 def read_pin(pin_number, label, pin_mode):
-    'Send command: read_pin'
+    """Send command: read_pin.
+
+    Args:
+        pin_number (int): Arduino pin (0 through 69).
+        label (str): Any string.
+        pin_mode (int): 0 (digital) or 1 (analog).
+    """
     kind = 'read_pin'
     args_ok = _check_arg(kind, pin_number, range(0, 70))
     args_ok = _check_arg(kind, pin_mode, [0, 1])
@@ -313,19 +406,25 @@ def read_pin(pin_number, label, pin_mode):
 
 @_send
 def read_status():
-    'Send command: read_status'
+    """Send command: read_status."""
     kind = 'read_status'
     return _assemble(kind, {})
 
 @_send
 def reboot():
-    'Send command: reboot'
+    """Send command: reboot."""
     kind = 'reboot'
     return _assemble(kind, {})
 
 @_send
 def register_gpio(sequence_id, pin_number):
-    'Send command: register_gpio'
+    """Send command: register_gpio.
+
+    Args:
+        sequence_id (int): Web App Sequence ID.
+            Sequence must be synced to FarmBot OS before registration.
+        pin_number (int): Raspberry Pi GPIO BCM pin number.
+    """
     kind = 'register_gpio'
     args_ok = _check_arg(kind, pin_number, range(1, 30))
     if args_ok:
@@ -334,13 +433,22 @@ def register_gpio(sequence_id, pin_number):
 
 @_send
 def remove_farmware(package):
-    'Send command: remove_farmware'
+    """Send command: remove_farmware.
+
+    Args:
+        package (str): Name of the Farmware to uninstall.
+    """
     kind = 'remove_farmware'
     return _assemble(kind, {'package': package})
 
 @_send
 def set_pin_io_mode(pin_io_mode, pin_number):
-    'Send command: set_pin_io_mode'
+    """Send command: set_pin_io_mode.
+
+    Args:
+        pin_io_mode (int): 0 (input), 1 (output), or 2 (input_pullup)
+        pin_number (int): Arduino pin (0 through 69).
+    """
     kind = 'set_pin_io_mode'
     args_ok = _check_arg(kind, pin_io_mode, [0, 1, 2])
     args_ok = _check_arg(kind, pin_number, range(0, 70))
@@ -350,7 +458,12 @@ def set_pin_io_mode(pin_io_mode, pin_number):
 
 @_send
 def set_servo_angle(pin_number, pin_value):
-    'Send command: set_servo_angle'
+    """Send command: set_servo_angle.
+
+    Args:
+        pin_number (int): Arduino servo pin (4 or 5).
+        pin_value (int): Servo angle (0 through 359).
+    """
     kind = 'set_servo_angle'
     args_ok = _check_arg(kind, pin_number, range(4, 6))
     args_ok = _check_arg(kind, pin_value, range(0, 360))
@@ -360,26 +473,35 @@ def set_servo_angle(pin_number, pin_value):
 
 @_send
 def set_user_env(key, value):
-    'Send command: set_user_env'
+    """Send command: set_user_env.
+
+    Args:
+        key (str): ENV key
+        value (str): ENV value
+    """
     kind = 'set_user_env'
     body = [assemble_pair(key, value)]
     return _assemble(kind, {}, body)
 
 @_send
 def sync():
-    'Send command: sync'
+    """Send command: sync."""
     kind = 'sync'
     return _assemble(kind, {})
 
 @_send
 def take_photo():
-    'Send command: take_photo'
+    """Send command: take_photo."""
     kind = 'take_photo'
     return _assemble(kind, {})
 
 @_send
 def toggle_pin(pin_number):
-    'Send command: toggle_pin'
+    """Send command: toggle_pin.
+
+    Args:
+        pin_number (int): Arduino pin (0 through 69).
+    """
     kind = 'toggle_pin'
     args_ok = _check_arg(kind, pin_number, range(0, 70))
     if args_ok:
@@ -387,7 +509,11 @@ def toggle_pin(pin_number):
 
 @_send
 def unregister_gpio(pin_number):
-    'Send command: unregister_gpio'
+    """Send command: unregister_gpio.
+
+    Args:
+        pin_number (int): Arduino pin (0 through 69).
+    """
     kind = 'unregister_gpio'
     args_ok = _check_arg(kind, pin_number, range(0, 70))
     if args_ok:
@@ -395,19 +521,33 @@ def unregister_gpio(pin_number):
 
 @_send
 def update_farmware(package):
-    'Send command: update_farmware'
+    """Send command: update_farmware.
+
+    Args:
+        package (str): Name of the Farmware to update.
+    """
     kind = 'update_farmware'
     return _assemble(kind, {'package': package})
 
 @_send
 def wait(milliseconds):
-    'Send command: wait'
+    """Send command: wait.
+
+    Args:
+        milliseconds (int): Time to wait in milliseconds.
+    """
     kind = 'wait'
     return _assemble(kind, {'milliseconds': milliseconds})
 
 @_send
 def write_pin(pin_number, pin_value, pin_mode):
-    'Send command: write_pin'
+    """Send command: write_pin.
+
+    Args:
+        pin_number (int): Arduino pin (0 through 69).
+        pin_value (int): Value to write to pin.
+        pin_mode (int): 0 (digital) or 1 (analog).
+    """
     kind = 'write_pin'
     args_ok = _check_arg(kind, pin_number, range(0, 70))
     args_ok = _check_arg(kind, pin_mode, [0, 1])
@@ -418,14 +558,25 @@ def write_pin(pin_number, pin_value, pin_mode):
 
 @_send
 def zero(axis):
-    'Send command: zero'
+    """Send command: zero.
+
+    Args:
+        axis (str): One of ALLOWED_AXIS_VALUES.
+    """
     kind = 'zero'
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
 
 def get_current_position(axis='all', _get_bot_state=get_bot_state):
-    'Get the current position.'
+    """Get the current position.
+
+    Args:
+        axis (str, optional): One of ALLOWED_AXIS_VALUES. Defaults to 'all'.
+    Returns:
+        'all': FarmBot position, i.e., {'x': 0.0, 'y': 0.0, 'z': 0.0}
+        'x', 'y', or 'z': FarmBot axis position, i.e., 0.0
+    """
     args_ok = _check_arg('get_current_position', axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         if axis in ['x', 'y', 'z']:
@@ -437,7 +588,11 @@ def get_current_position(axis='all', _get_bot_state=get_bot_state):
             return _get_bot_state()['location_data']['position']
 
 def get_pin_value(pin_number, _get_bot_state=get_bot_state):
-    'Get a value from a pin.'
+    """Get a value from a pin.
+
+    Args:
+        pin_number (int): Arduino pin (0 through 69).
+    """
     try:
         value = _get_bot_state()['pins'][str(pin_number)]['value']
     except KeyError:

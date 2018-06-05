@@ -27,8 +27,10 @@ if __name__ == '__main__':
           packages=['farmware_tools'],
           include_package_data=True,
           classifiers=[
-              'Development Status :: 2 - Pre-Alpha',
+              'Development Status :: 3 - Alpha',
               'License :: OSI Approved :: MIT License',
               'Programming Language :: Python',
+              'Programming Language :: Python :: 2',
+              'Programming Language :: Python :: 2.7',
           ],
           keywords=['farmbot', 'python'])
