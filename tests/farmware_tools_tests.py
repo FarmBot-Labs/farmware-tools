@@ -462,6 +462,8 @@ if __name__ == '__main__':
                                name='test', get_info=app_login)
         print(PLANT2)
         print(app.delete('points', PLANT2['id'], get_info=app_login))
+        print(app.find_sequence_by_name(name='test \xe2\x9c\x93', get_info=app_login))
+        print(app.find_sequence_by_name(name=u'test \u2713', get_info=app_login))
         print(app.find_sequence_by_name(name='test', get_info=app_login))
         print()
 

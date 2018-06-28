@@ -201,9 +201,13 @@ def find_sequence_by_name(name, get_info=_get_required_info):
     sequences = get('sequences', get_info=get_info)
     sequence_lookup = {s['name']: s['id'] for s in sequences}
     try:
-        sequence_id = sequence_lookup[name]
+        uname = name.decode('utf-8')
+    except UnicodeEncodeError:
+        uname = name
+    try:
+        sequence_id = sequence_lookup[uname]
     except KeyError:
-        log('Sequence `{}` not found.'.format(name), 'error')
+        log(u'Sequence `{}` not found.'.format(uname), 'error')
         sys.exit(1)
     else:
         return sequence_id
