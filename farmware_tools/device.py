@@ -7,7 +7,7 @@ import os
 import sys
 from functools import wraps
 import requests
-from .aux import Color
+from .auxiliary import Color
 
 COLOR = Color()
 ALLOWED_AXIS_VALUES = ['x', 'y', 'z', 'all']

@@ -9,7 +9,7 @@ import time
 import json
 import base64
 import requests
-from .aux import Color
+from .auxiliary import Color
 
 COLOR = Color()
 

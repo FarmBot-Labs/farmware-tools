@@ -12,9 +12,9 @@ from getpass import getpass
 import paho.mqtt.publish as publish
 import paho.mqtt.client as mqtt
 import requests
-from farmware_tools import device, app, get_config_value, aux
+from farmware_tools import device, app, get_config_value, auxiliary
 
-COLOR = aux.Color()
+COLOR = auxiliary.Color()
 
 try:
     INPUT = raw_input
