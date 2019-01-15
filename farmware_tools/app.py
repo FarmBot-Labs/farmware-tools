@@ -202,7 +202,7 @@ def find_sequence_by_name(name, get_info=_get_required_info):
     sequence_lookup = {s['name']: s['id'] for s in sequences}
     try:
         uname = name.decode('utf-8')
-    except UnicodeEncodeError:
+    except (UnicodeEncodeError, AttributeError):
         uname = name
     try:
         sequence_id = sequence_lookup[uname]

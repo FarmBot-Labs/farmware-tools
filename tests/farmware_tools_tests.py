@@ -103,6 +103,7 @@ class Tester(object):
             app.put('fbos_config', payload={LOG_FW_CMD_CONFIG_KEY: True},
                     get_info=app_login)
             self.wait_for_log(LOG_FW_CMD_CONFIG_KEY, count_time=False)
+        send(device.sync(), self.login_info)
         print('-' * 50)
 
     def teardown(self):
@@ -344,6 +345,9 @@ if __name__ == '__main__':
         OFFSET = device.assemble_coordinate(0, 0, 0)
         URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
             'master/packages/take-photo/manifest.json'
+        app.post('sequences', {'name': 'test', 'body': []}, get_info=app_login)
+        app.post('sequences', {'name': 'test \xe2\x9c\x93', 'body': []},
+                 get_info=app_login)
         SEQUENCE = app.find_sequence_by_name(name='test', get_info=app_login)
         TESTS = [
             {'command': device.log, 'kwargs': {'message': 'hi'}},
@@ -366,6 +370,7 @@ if __name__ == '__main__':
              'kwargs': {
                  'label': 'take-photo',
                  'inputs': {'input_1': 1, 'take_photo_input_2': 'two'}}},
+            {'command': device.run_farmware, 'kwargs': {'label': 'take-photo'}},
             {'command': device.find_home, 'kwargs': {'axis': 'y'},
              'expected': {'log': ['F12']}},
             {'command': device.home, 'kwargs': {'axis': 'z'},
@@ -376,7 +381,7 @@ if __name__ == '__main__':
              'kwargs': {'location': COORDINATE, 'speed': 100, 'offset': OFFSET},
              'expected': {'log': ['G00 X1.0 Y0.0 Z1.0']}},
             {'command': device.move_relative,
-             'kwargs': {'x': -1, 'y': 0, 'z': 0, 'speed': 100},
+             'kwargs': {'x': -1, 'y': 0, 'z': -1, 'speed': 100},
              'expected': {'log': ['G00 X0.0 Y0.0 Z0.0']}},
             {'command': device.read_pin,
              'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0},
@@ -423,6 +428,7 @@ if __name__ == '__main__':
             except KeyError:
                 _rpc_id = None
             print()
+            time.sleep(3)
             TEST.test(test['command'](**test['kwargs']),
                       rpc_id=_rpc_id, expected=test.get('expected'))
         print('=' * 20)

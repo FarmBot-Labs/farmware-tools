@@ -290,6 +290,15 @@ def execute_script(label, inputs=None):
             body.append(assemble_pair(input_name, value))
         return _assemble(kind, args, body)
 
+def _set_docstring_for_execute_script_alias(func):
+    func.__doc__ = execute_script.__doc__
+    return func
+
+@_set_docstring_for_execute_script_alias
+def run_farmware(label, inputs=None):
+    """Alias for `execute_script`"""
+    return execute_script(label, inputs)
+
 @_send
 def factory_reset(package):
     """Send command: factory_reset.
