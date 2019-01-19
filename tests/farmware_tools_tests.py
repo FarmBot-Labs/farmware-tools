@@ -103,7 +103,7 @@ class Tester(object):
             app.put('fbos_config', payload={LOG_FW_CMD_CONFIG_KEY: True},
                     get_info=app_login)
             self.wait_for_log(LOG_FW_CMD_CONFIG_KEY, count_time=False)
-        send(device.sync(), self.login_info)
+        send(device.sync()['command'], self.login_info)
         print('-' * 50)
 
     def teardown(self):
@@ -429,7 +429,7 @@ if __name__ == '__main__':
                 _rpc_id = None
             print()
             time.sleep(3)
-            TEST.test(test['command'](**test['kwargs']),
+            TEST.test(test['command'](**test['kwargs'])['command'],
                       rpc_id=_rpc_id, expected=test.get('expected'))
         print('=' * 20)
         TEST.print_elapsed_time()

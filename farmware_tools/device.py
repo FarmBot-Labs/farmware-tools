@@ -116,7 +116,7 @@ def send_celery_script(command):
     response = _post('celery_script', command)
     if response is None:
         print(COLOR.colorize_celery_script(kind, args, body))
-    return command
+    return {'command': command}
 
 def log(message, message_type='info', channels=None):
     """Send a send_message command to post a log to the Web App.
