@@ -346,8 +346,6 @@ if __name__ == '__main__':
         URL = 'https://raw.githubusercontent.com/FarmBot-Labs/farmware_manifests/' \
             'master/packages/take-photo/manifest.json'
         app.post('sequences', {'name': 'test', 'body': []}, get_info=app_login)
-        app.post('sequences', {'name': 'test \xe2\x9c\x93', 'body': []},
-                 get_info=app_login)
         SEQUENCE = app.find_sequence_by_name(name='test', get_info=app_login)
         TESTS = [
             {'command': device.log, 'kwargs': {'message': 'hi'}},
@@ -387,8 +385,6 @@ if __name__ == '__main__':
              'kwargs': {'pin_number': 1, 'label': 'label', 'pin_mode': 0},
              'expected': {'log': ['F42 P1 M0']}},
             {'command': device.read_status, 'kwargs': {}},
-            {'command': device.register_gpio,
-             'kwargs': {'pin_number': 1, 'sequence_id': SEQUENCE}},
             {'command': device.remove_farmware,
              'kwargs': {'package': 'farmware'}},
             {'command': device.set_pin_io_mode,
@@ -406,7 +402,6 @@ if __name__ == '__main__':
             {'command': device.take_photo, 'kwargs': {}},
             {'command': device.toggle_pin, 'kwargs': {'pin_number': 1},
              'expected': {'log': ['F41 P1 V']}},
-            {'command': device.unregister_gpio, 'kwargs': {'pin_number': 1}},
             {'command': device.update_farmware,
              'kwargs': {'package': 'take-photo'}},
             {'command': device.wait, 'kwargs': {'milliseconds': 100}},
@@ -468,7 +463,9 @@ if __name__ == '__main__':
                                name='test', get_info=app_login)
         print(PLANT2)
         print(app.delete('points', PLANT2['id'], get_info=app_login))
-        print(app.find_sequence_by_name(name='test \xe2\x9c\x93', get_info=app_login))
+        app.post('sequences', {'name': 'test', 'body': []}, get_info=app_login)
+        app.post('sequences', {'name': u'test \u2713', 'body': []},
+                 get_info=app_login)
         print(app.find_sequence_by_name(name=u'test \u2713', get_info=app_login))
         print(app.find_sequence_by_name(name='test', get_info=app_login))
         print()

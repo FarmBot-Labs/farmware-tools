@@ -3,19 +3,20 @@
 '''Farmware Tools: Web App.'''
 
 from __future__ import print_function
-import os
 import sys
 import time
 import json
 import base64
 import requests
 from .auxiliary import Color
+from .env import Env
 
 COLOR = Color()
+ENV = Env()
 
 def _get_required_info():
     'Get the info required to send an HTTP request to the FarmBot Web App.'
-    token = os.environ['API_TOKEN']
+    token = ENV.token
     encoded_payload = token.split('.')[1]
     encoded_payload += '=' * (4 - len(encoded_payload) % 4)
     json_payload = base64.b64decode(encoded_payload).decode('utf-8')

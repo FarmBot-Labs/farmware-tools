@@ -8,8 +8,10 @@ import sys
 from functools import wraps
 import requests
 from .auxiliary import Color
+from .env import Env
 
 COLOR = Color()
+ENV = Env()
 ALLOWED_AXIS_VALUES = ['x', 'y', 'z', 'all']
 ALLOWED_MESSAGE_TYPES = [
     'success', 'busy', 'warn', 'error', 'info', 'fun', 'debug']
@@ -17,7 +19,8 @@ ALLOWED_MESSAGE_CHANNELS = ['ticker', 'toast', 'email', 'espeak']
 ALLOWED_PACKAGES = ['farmbot_os', 'arduino_firmware', 'farmware']
 
 def _on_error():
-    sys.exit(1)
+    if ENV.farmware_api_available():
+        sys.exit(1)
     return
 
 def _check_celery_script(command):
@@ -35,9 +38,9 @@ def _check_celery_script(command):
                 _on_error()
         return kind, args, body
 
-def rpc_wrapper(command, rpc_id=''):
+def rpc_wrapper(command, rpc_id=None):
     """Wrap a command in `rpc_request` with the given `rpc_id`."""
-    return {'kind': 'rpc_request', 'args': {'label': rpc_id}, 'body': [command]}
+    return {'kind': 'rpc_request', 'args': {'label': rpc_id or ''}, 'body': [command]}
 
 def _device_request(method, endpoint, payload=None):
     'Make a request to the device Farmware API.'
@@ -64,11 +67,11 @@ def _device_request(method, endpoint, payload=None):
 def _post(endpoint, payload):
     """Post a payload to the device Farmware API.
 
-    Since the only currently available endpoint is 'celery_script',
+    Since the only available endpoint is 'celery_script',
     use `send_celery_script(command)` instead.
 
     Args:
-        endpoint (str): i.e., 'celery_script'
+        endpoint (str): 'celery_script'
         payload (dict): i.e., {'kind': 'take_photo', 'args': {}}
     Returns:
         requests response object
@@ -78,11 +81,11 @@ def _post(endpoint, payload):
 def _get(endpoint):
     """Get info from the device Farmware API.
 
-    Since the only currently available endpoint is 'bot/state',
+    Since the only available endpoint is 'bot/state',
     use `get_bot_state()` instead.
 
     Args:
-        endpoint (str): i.e., 'bot/state'
+        endpoint (str): 'bot/state'
     Returns:
         requests response object
     """
@@ -94,6 +97,7 @@ def get_bot_state():
     if bot_state is None:
         _error('Device info could not be retrieved.')
         _on_error()
+        return {}
     else:
         return bot_state.json()
 
@@ -101,24 +105,29 @@ def _send(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         'Send Celery Script to the device.'
-        try:
-            rpc_id = kwargs.pop('rpc_id')
-        except KeyError:
-            command = function(*args, **kwargs)
+        rpc_id = kwargs.pop('rpc_id', None)
+        if not isinstance(rpc_id, str):
+            return send_celery_script(function(*args, **kwargs))
         else:
-            command = rpc_wrapper(function(*args, **kwargs), rpc_id=rpc_id)
-        return send_celery_script(command)
+            return send_celery_script(function(*args, **kwargs), rpc_id=rpc_id)
     return wrapper
 
-def send_celery_script(command):
+def send_celery_script(command, rpc_id=None):
     """Send a Celery Script command."""
     kind, args, body = _check_celery_script(command)
-    response = _post('celery_script', command)
+    if kind == 'rpc_request':
+        rpc = command
+    else:
+        rpc = rpc_wrapper(command, rpc_id=rpc_id)
+    response = _post('celery_script', rpc)
     if response is None:
         print(COLOR.colorize_celery_script(kind, args, body))
-    return {'command': command}
+    return {
+        'command': command,
+        'sent': rpc,
+        }
 
-def log(message, message_type='info', channels=None):
+def log(message, message_type='info', channels=None, rpc_id=None):
     """Send a send_message command to post a log to the Web App.
 
     Args:
@@ -128,7 +137,7 @@ def log(message, message_type='info', channels=None):
         channels (list, optional): Any of ALLOWED_MESSAGE_CHANNELS.
             Defaults to None.
     """
-    return send_message(message, message_type, channels)
+    return send_message(message, message_type, channels, rpc_id=rpc_id)
 
 def _assemble(kind, args, body=None):
     'Assemble a celery script command.'
@@ -138,21 +147,17 @@ def _assemble(kind, args, body=None):
         return {'kind': kind, 'args': args, 'body': body}
 
 def _error(error_text):
-    try:
-        os.environ['FARMWARE_URL']
-    except KeyError:
-        print(COLOR.error(error_text))
-    else:
+    if ENV.farmware_api_available():
         log(error_text, 'error')
+    else:
+        print(COLOR.error(error_text))
 
 def _cs_error(kind, arg):
-    try:
-        os.environ['FARMWARE_URL']
-    except KeyError:
+    if ENV.farmware_api_available():
+        log('Invalid arg `{}` for `{}`'.format(arg, kind), 'error')
+    else:
         print(COLOR.error('Invalid input `{arg}` in `{kind}`'.format(
             arg=arg, kind=kind)))
-    else:
-        log('Invalid arg `{}` for `{}`'.format(arg, kind), 'error')
 
 def _check_arg(kind, arg, accepted):
     'Error and exit for invalid command arguments.'
@@ -295,9 +300,9 @@ def _set_docstring_for_execute_script_alias(func):
     return func
 
 @_set_docstring_for_execute_script_alias
-def run_farmware(label, inputs=None):
+def run_farmware(label, inputs=None, rpc_id=None):
     """Alias for `execute_script`"""
-    return execute_script(label, inputs)
+    return execute_script(label, inputs, rpc_id=rpc_id)
 
 @_send
 def factory_reset(package):
@@ -427,7 +432,11 @@ def reboot():
 
 @_send
 def register_gpio(sequence_id, pin_number):
-    """Send command: register_gpio.
+    """Send command: register_gpio (DEPRECATED).
+
+    Deprecated. Use
+    `app.post('pin_bindings', {'sequence_id': 0, 'pin_num': 0})`
+    instead.
 
     Args:
         sequence_id (int): Web App Sequence ID.
@@ -470,12 +479,12 @@ def set_servo_angle(pin_number, pin_value):
     """Send command: set_servo_angle.
 
     Args:
-        pin_number (int): Arduino servo pin (4 or 5).
-        pin_value (int): Servo angle (0 through 359).
+        pin_number (int): Arduino servo pin (4, 5, 6, or 11).
+        pin_value (int): Servo angle (0 through 180).
     """
     kind = 'set_servo_angle'
-    args_ok = _check_arg(kind, pin_number, range(4, 6))
-    args_ok = _check_arg(kind, pin_value, range(0, 360))
+    args_ok = _check_arg(kind, pin_number, [4, 5, 6, 11])
+    args_ok = _check_arg(kind, pin_value, range(0, 181))
     if args_ok:
         return _assemble(kind, {'pin_number': pin_number,
                                 'pin_value': pin_value})
@@ -518,7 +527,10 @@ def toggle_pin(pin_number):
 
 @_send
 def unregister_gpio(pin_number):
-    """Send command: unregister_gpio.
+    """Send command: unregister_gpio (DEPRECATED).
+
+    Deprecated.
+    Use `app.delete('pin_bindings', _id=0)` instead.
 
     Args:
         pin_number (int): Arduino pin (0 through 69).
@@ -633,14 +645,14 @@ if __name__ == '__main__':
     read_pin(1, 'label', 0)
     read_status()
     # reboot()
-    register_gpio(1, 1)
+    # register_gpio(1, 1)
     remove_farmware('farmware')
     set_pin_io_mode(0, 47)
     set_servo_angle(4, 1)
     sync()
     take_photo()
     toggle_pin(1)
-    unregister_gpio(1)
+    # unregister_gpio(1)
     update_farmware('take-photo')
     wait(100)
     write_pin(1, 1, 0)
