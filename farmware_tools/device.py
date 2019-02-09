@@ -115,7 +115,8 @@ def _send(function):
 def send_celery_script(command, rpc_id=None):
     """Send a Celery Script command."""
     kind, args, body = _check_celery_script(command)
-    if kind == 'rpc_request':
+    no_rpc = kind in ['read_pin', 'write_pin'] and not ENV.fbos_at_least(7, 0, 1)
+    if kind == 'rpc_request' or no_rpc:
         rpc = command
     else:
         rpc = rpc_wrapper(command, rpc_id=rpc_id)
