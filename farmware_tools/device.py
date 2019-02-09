@@ -5,6 +5,7 @@
 from __future__ import print_function
 import os
 import sys
+import uuid
 from functools import wraps
 import requests
 from .auxiliary import Color
@@ -40,7 +41,10 @@ def _check_celery_script(command):
 
 def rpc_wrapper(command, rpc_id=None):
     """Wrap a command in `rpc_request` with the given `rpc_id`."""
-    return {'kind': 'rpc_request', 'args': {'label': rpc_id or ''}, 'body': [command]}
+    return {
+        'kind': 'rpc_request',
+        'args': {'label': rpc_id or str(uuid.uuid4())},
+        'body': [command]}
 
 def _device_request(method, endpoint, payload=None):
     'Make a request to the device Farmware API.'
@@ -115,7 +119,8 @@ def _send(function):
 def send_celery_script(command, rpc_id=None):
     """Send a Celery Script command."""
     kind, args, body = _check_celery_script(command)
-    no_rpc = kind in ['read_pin', 'write_pin'] and not ENV.fbos_at_least(7, 0, 1)
+    temp_no_rpc_kinds = ['read_pin', 'write_pin', 'set_pin_io_mode', 'update_farmware']
+    no_rpc = kind in temp_no_rpc_kinds and not ENV.fbos_at_least(7, 0, 1)
     if kind == 'rpc_request' or no_rpc:
         rpc = command
     else:
