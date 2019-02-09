@@ -63,7 +63,7 @@ def _device_request(method, endpoint, payload=None):
         request_kwargs['json'] = payload
     response = requests.request(method, url, **request_kwargs)
     if response.status_code != 200:
-        log('Invalid {} request `{}` ({})'.format(
+        log('{} request `{}` error ({})'.format(
             endpoint, payload or '', response.status_code), 'error')
         _on_error()
     return response
