@@ -3,6 +3,8 @@
 '''Farmware Tools: Auxiliary Utilities.'''
 
 from __future__ import print_function
+import re
+from string import punctuation
 
 class Color(object):
     """Color codes for colorizing terminal output."""
@@ -92,6 +94,15 @@ class Color(object):
         return '{color}{status_code}{reset}'.format(
             color=color, status_code=status_code, reset=self.reset)
 
+def snake_case(string):
+    'Convert a string to snake_case.'
+    string = re.sub('(.)([A-Z][a-z])', r'\1_\2', string)  # *Aa -> *_Aa
+    string = re.sub('(.)([0-9]+)', r'\1_\2', string)  # *00 -> *_00
+    string = ''.join(c for c in string if c not in punctuation.replace('_', ''))
+    string = string.replace(' ', '_').strip('_').lower()  # _A B -> a_b
+    string = re.sub('_+', '_', string)  # a__b -> a_b
+    return string
+
 if __name__ == '__main__':
     COLOR = Color()
     for color_name, number in COLOR.color_number.items():
@@ -108,5 +119,11 @@ if __name__ == '__main__':
     print(COLOR.colorize_response_code(300))
     print(COLOR.colorize_response_code(400))
     print(COLOR.make_bold('bold'))
-    print(COLOR.error('ERROR'))
-    print(COLOR.green + 'OK' + COLOR.reset)
+    ERROR = COLOR.error('ERROR')
+    print(ERROR)
+    OK = COLOR.green + 'OK' + COLOR.reset
+    print(OK)
+    print()
+    STRING = snake_case("ABCd1234's A_BCD")
+    print(STRING, end=' ')
+    print(OK if STRING == "ab_cd_1234s_a_bcd" else ERROR)

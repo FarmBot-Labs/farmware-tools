@@ -3,6 +3,7 @@
 import os
 from .device import log, get_bot_state
 from .app import request
+from .auxiliary import snake_case
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as version_file:
     VERSION = version_file.read().strip()
@@ -19,9 +20,7 @@ def get_config_value(farmware_name, config_name, value_type=int,
         farmware_name (str): Name of the Farmware.
         config_name (str): Farmware input name.
     """
-    # Convert the Farmware name to snake_case.
-    farmware = farmware_name.replace(' ', '_').replace('-', '_').lower()
-    namespaced_config = '{}_{}'.format(farmware, config_name)
+    namespaced_config = '{}_{}'.format(snake_case(farmware_name), config_name)
 
     # Try to determine the default value for the config in two steps.
     # If a default value isn't found in either step, assume the config value
