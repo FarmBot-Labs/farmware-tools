@@ -192,6 +192,9 @@ def assemble_pair(label, value):
         'kind': 'pair',
         'args': {'label': label, 'value': value}}
 
+def _nothing():
+    return {'kind': 'nothing', 'args': {}}
+
 def _check_coordinate(coordinate):
     coordinate_ok = True
     try:
@@ -275,7 +278,8 @@ def execute(sequence_id):
             Sequence must be synced to FarmBot OS before execution.
     """
     kind = 'execute'
-    return _assemble(kind, {'sequence_id': sequence_id})
+    args = {'sequence_id': sequence_id}
+    return _assemble(kind, args)
 
 @_send
 def execute_script(label, inputs=None):
@@ -431,10 +435,12 @@ def read_status():
     return _assemble(kind, {})
 
 @_send
-def reboot():
+def reboot(package='farmbot_os'):
     """Send command: reboot."""
     kind = 'reboot'
-    return _assemble(kind, {})
+    args_ok = _check_arg(kind, package, ALLOWED_PACKAGES)
+    if args_ok:
+        return _assemble(kind, {'package': package})
 
 @_send
 def register_gpio(sequence_id, pin_number):
@@ -612,7 +618,10 @@ def get_current_position(axis='all', _get_bot_state=get_bot_state):
             except KeyError:
                 _error('Position `{}` value unknown.'.format(axis))
         else:
-            return _get_bot_state()['location_data']['position']
+            try:
+                return _get_bot_state()['location_data']['position']
+            except KeyError:
+                _error('Position unknown.')
 
 def get_pin_value(pin_number, _get_bot_state=get_bot_state):
     """Get a value from a pin.

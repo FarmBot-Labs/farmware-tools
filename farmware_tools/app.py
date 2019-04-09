@@ -24,6 +24,13 @@ def _get_required_info():
     url = 'http{}:{}/api/'.format('s' if ':443' in server else '', server)
     return {'token': token, 'url': url}
 
+def _error(message):
+    if ENV.farmware_api_available():
+        log(message, 'error')
+        sys.exit(1)
+    else:
+        print(COLOR.error(message))
+
 def request(raw_method, endpoint, _id=None, payload=None,
             get_info=_get_required_info):
     """Send an HTTP request to the FarmBot Web App.
@@ -177,7 +184,10 @@ def get_property(endpoint, field, _id=None, get_info=_get_required_info):
         _id (int, optional): ID of a resource. Defaults to None.
     """
     record = get(endpoint, _id=_id, get_info=get_info)
-    return record[field]
+    try:
+        return record[field]
+    except (KeyError, TypeError):
+        _error('{} not found.'.format(field))
 
 def add_plant(x, y, get_info=_get_required_info, **kwargs):
     """Add a plant to the garden map.
@@ -200,6 +210,9 @@ def find_sequence_by_name(name, get_info=_get_required_info):
         name (str): Sequence name.
     """
     sequences = get('sequences', get_info=get_info)
+    if not isinstance(sequences, list):
+        _error('Error retrieving sequences.')
+        sequences = []
     sequence_lookup = {s['name']: s['id'] for s in sequences}
     try:
         uname = name.decode('utf-8')
@@ -208,8 +221,7 @@ def find_sequence_by_name(name, get_info=_get_required_info):
     try:
         sequence_id = sequence_lookup[uname]
     except KeyError:
-        log(u'Sequence `{}` not found.'.format(uname), 'error')
-        sys.exit(1)
+        _error(u'Sequence `{}` not found.'.format(uname))
     else:
         return sequence_id
 

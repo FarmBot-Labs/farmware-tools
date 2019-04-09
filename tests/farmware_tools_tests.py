@@ -11,7 +11,7 @@ from getpass import getpass
 import paho.mqtt.publish as publish
 import paho.mqtt.client as mqtt
 import requests
-from farmware_tools import device, app, auxiliary
+from farmware_tools import device, app, auxiliary, VERSION
 
 COLOR = auxiliary.Color()
 
@@ -318,6 +318,8 @@ class Tester(object):
         print()
 
 if __name__ == '__main__':
+    print('python {}'.format(sys.version.split(' ')[0]))
+    print('farmware_tools {}'.format(VERSION))
     LOGIN_INFO = False
     def app_login():
         'Return app login info.'
