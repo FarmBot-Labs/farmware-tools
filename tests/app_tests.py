@@ -11,7 +11,11 @@ def run_tests(app_login):
     TIMESTAMP = str(int(time.time()))
     print(app.log('hi', get_info=app_login))
     print(app.request('GET', 'tools', get_info=app_login))
+    print(app.request('GET', 'tools', return_dict=True, get_info=app_login))
     print(app.get('sensors', get_info=app_login))
+    print(app.get('sensors', return_dict=True, get_info=app_login))
+    print(app.get('invalid_endpoint', get_info=app_login))
+    print(app.post('tools', payload='invalid payload', get_info=app_login))
     TOOL = app.post('tools', payload={'name': 'test_tool_' + TIMESTAMP},
                     get_info=app_login)
     print(TOOL)
