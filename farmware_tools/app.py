@@ -73,7 +73,10 @@ def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
         api = get_info()
     except:
         print(request_string)
-        return request_string
+        if return_dict:
+            return {'json': json.dumps(request_string), 'status_code': 0}
+        else:
+            return request_string
 
     try:  # verbose output if testing
         if api['verbose']:
