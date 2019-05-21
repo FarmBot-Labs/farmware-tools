@@ -98,6 +98,7 @@ def snake_case(string):
     'Convert a string to snake_case.'
     string = re.sub('(.)([A-Z][a-z])', r'\1_\2', string)  # *Aa -> *_Aa
     string = re.sub('(.)([0-9]+)', r'\1_\2', string)  # *00 -> *_00
+    string = string.replace('-', '_')  # A-B -> A_B
     string = ''.join(c for c in string if c not in punctuation.replace('_', ''))
     string = string.replace(' ', '_').strip('_').lower()  # _A B -> a_b
     string = re.sub('_+', '_', string)  # a__b -> a_b
@@ -124,6 +125,6 @@ if __name__ == '__main__':
     OK = COLOR.green + 'OK' + COLOR.reset
     print(OK)
     print()
-    STRING = snake_case("ABCd1234's A_BCD")
+    STRING = snake_case("ABCd12-34's A_BC-D")
     print(STRING, end=' ')
-    print(OK if STRING == "ab_cd_1234s_a_bcd" else ERROR)
+    print(OK if STRING == "ab_cd_12_34s_a_bc_d" else ERROR)
