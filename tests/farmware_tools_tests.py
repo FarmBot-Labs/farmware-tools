@@ -369,6 +369,10 @@ if __name__ == '__main__':
         _print_header('device.get_pin_value():')
         device_state_tests.run_pin_value_tests()
 
+        import device_error_tests
+        _print_header('device command error:')
+        device_error_tests.run_command_error_tests()
+
         _print_header('env.Env().fbos_at_least():')
         import env_tests
         env_tests.run_tests()
