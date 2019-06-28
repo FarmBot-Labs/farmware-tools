@@ -18,11 +18,11 @@ ALLOWED_MESSAGE_TYPES = [
     'success', 'busy', 'warn', 'error', 'info', 'fun', 'debug']
 ALLOWED_MESSAGE_CHANNELS = ['ticker', 'toast', 'email', 'espeak']
 ALLOWED_PACKAGES = ['farmbot_os', 'arduino_firmware', 'farmware']
+RESPONSE_ERROR_LOG_UUID = str(uuid.uuid4())
 
 def _on_error():
     if ENV.farmware_api_available():
         sys.exit(1)
-    return
 
 def _check_celery_script(command):
     try:
@@ -59,12 +59,16 @@ def _device_request(method, endpoint, payload=None):
     request_kwargs['headers'] = {
         'Authorization': 'Bearer ' + token,
         'content-type': 'application/json'}
+    response_error_log = False
     if payload is not None:
         request_kwargs['json'] = payload
+        response_error_log = payload.get(
+            'args', {}).get('label') == RESPONSE_ERROR_LOG_UUID
     response = requests.request(method, url, **request_kwargs)
-    if response.status_code != 200:
+    if response.status_code != 200 and not response_error_log:
         log('{} request `{}` error ({})'.format(
-            endpoint, payload or '', response.status_code), 'error')
+            endpoint, payload or '', response.status_code), 'error',
+            rpc_id=RESPONSE_ERROR_LOG_UUID)
         _on_error()
     return response
 
