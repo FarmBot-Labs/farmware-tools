@@ -6,6 +6,8 @@ from __future__ import print_function
 import os
 import sys
 import uuid
+import json
+import struct
 from functools import wraps
 import requests
 from .auxiliary import Color
@@ -72,6 +74,33 @@ def _device_request(method, endpoint, payload=None):
         _on_error()
     return response
 
+def _device_request_v2(payload):
+    'Make a request to the device Farmware API (v2).'
+    if not ENV.farmware_api_available():
+        return
+    HEADER_FORMAT = '>HII'
+    with open(ENV.request_pipe, 'wb') as request_pipe:
+        message_bytes = bytes(json.dumps(payload), 'utf-8')
+        header = struct.pack(HEADER_FORMAT, 0xFBFB, 0, len(message_bytes))
+        request_pipe.write(header + message_bytes)
+    with open(ENV.response_pipe, 'rb') as response_pipe:
+        header = response_pipe.read(10)
+        (_, _, size) = struct.unpack(HEADER_FORMAT, header)
+        return json.loads(response_pipe.read(size).decode())
+
+def _device_state_fetch_v2():
+    'Get info from the device Farmware API (v2).'
+    if ENV.bot_state_dir is None:
+        return
+
+    def _crawl(path):
+        if os.path.isdir(path):
+            return {n: _crawl(os.path.join(path, n)) for n in os.listdir(path)}
+        with open(path, 'r') as value_file:
+            value = value_file.read()
+            return value if value != '' else None
+    return _crawl(ENV.bot_state_dir)
+
 def _post(endpoint, payload):
     """Post a payload to the device Farmware API.
 
@@ -84,6 +113,8 @@ def _post(endpoint, payload):
     Returns:
         requests response object
     """
+    if ENV.use_v2():
+        return _device_request_v2(payload)
     return _device_request('POST', endpoint, payload)
 
 def _get(endpoint):
@@ -97,6 +128,8 @@ def _get(endpoint):
     Returns:
         requests response object
     """
+    if ENV.use_v2():
+        return _device_state_fetch_v2()
     return _device_request('GET', endpoint)
 
 def get_bot_state():
@@ -107,7 +140,7 @@ def get_bot_state():
         _on_error()
         return {}
     else:
-        return bot_state.json()
+        return bot_state if ENV.use_v2() else bot_state.json()
 
 def _send(function):
     @wraps(function)
@@ -135,6 +168,7 @@ def send_celery_script(command, rpc_id=None):
     return {
         'command': command,
         'sent': rpc,
+        'reponse': response if ENV.use_v2() else {}
         }
 
 def log(message, message_type='info', channels=None, rpc_id=None):

@@ -4,6 +4,7 @@ import os
 from .device import log, get_bot_state
 from .app import request
 from .auxiliary import snake_case
+from .env import Env
 
 with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as version_file:
     VERSION = version_file.read().strip()
@@ -33,7 +34,7 @@ def get_config_value(farmware_name, config_name, value_type=int,
         log('Farmware manifest for `{}` not found.'.format(farmware_name), 'warn')
         return value_type(os.environ[namespaced_config])
     else:  # Found config data.
-        configs = manifest['config']
+        configs = manifest['config'].values() if Env().use_v2() else manifest['config']
 
     # Step 2. Search for the config name.
     try:  # to retrieve default config value
