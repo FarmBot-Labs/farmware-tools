@@ -1,7 +1,7 @@
 'Farmware Tools imports.'
 
 import os
-from .device import log, get_bot_state
+from .device import log, get_bot_state, set_user_env
 from .app import request
 from .auxiliary import snake_case
 from .env import Env
@@ -51,3 +51,14 @@ def get_config_value(farmware_name, config_name, value_type=int,
         log('Using the default value for `{}`.'.format(config_name))
         value = default
     return value
+
+def set_config_value(farmware_name, config_name, value):
+    """Set the value of a Farmware config using the Farmware's namespace.
+
+    Args:
+        farmware_name (str): Name of the Farmware.
+        config_name (str): Farmware input name.
+        value: Value to set.
+    """
+    namespaced_config = '{}_{}'.format(snake_case(farmware_name), config_name)
+    set_user_env(namespaced_config, value)

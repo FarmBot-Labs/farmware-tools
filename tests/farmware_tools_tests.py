@@ -155,7 +155,7 @@ class Tester(object):
         if 'from_device' in message.topic:
             parsed = json.loads(message.payload.decode())
             kind = parsed['kind']
-            if kind == 'rpc_ok' or kind == 'rpc_error':
+            if kind in ['rpc_ok', 'rpc_error']:
                 rpc_id = parsed['args']['label']
                 if rpc_id != 'ping':
                     self.incoming[rpc_id] = {

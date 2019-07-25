@@ -85,6 +85,9 @@ def _device_request_v2(payload):
         request_pipe.write(header + message_bytes)
     with open(ENV.response_pipe, 'rb') as response_pipe:
         header = response_pipe.read(10)
+        if header == b'':
+            print(COLOR.error('No response from FBOS'))
+            return 'no response'
         (_, _, size) = struct.unpack(HEADER_FORMAT, header)
         return json.loads(response_pipe.read(size).decode())
 
@@ -139,8 +142,7 @@ def get_bot_state():
         _error('Device info could not be retrieved.')
         _on_error()
         return {}
-    else:
-        return bot_state if ENV.use_v2() else bot_state.json()
+    return bot_state if ENV.use_v2() else bot_state.json()
 
 def _send(function):
     @wraps(function)
@@ -149,8 +151,7 @@ def _send(function):
         rpc_id = kwargs.pop('rpc_id', None)
         if not isinstance(rpc_id, str):
             return send_celery_script(function(*args, **kwargs))
-        else:
-            return send_celery_script(function(*args, **kwargs), rpc_id=rpc_id)
+        return send_celery_script(function(*args, **kwargs), rpc_id=rpc_id)
     return wrapper
 
 def send_celery_script(command, rpc_id=None):
@@ -168,7 +169,7 @@ def send_celery_script(command, rpc_id=None):
     return {
         'command': command,
         'sent': rpc,
-        'reponse': response if ENV.use_v2() else {}
+        'response': response if ENV.use_v2() else {}
         }
 
 def log(message, message_type='info', channels=None, rpc_id=None):
@@ -187,8 +188,7 @@ def _assemble(kind, args, body=None):
     'Assemble a celery script command.'
     if body is None:
         return {'kind': kind, 'args': args}
-    else:
-        return {'kind': kind, 'args': args, 'body': body}
+    return {'kind': kind, 'args': args, 'body': body}
 
 def _error(error_text):
     if ENV.farmware_api_available():
@@ -265,11 +265,10 @@ def send_message(message, message_type, channels=None):
         if channels is None:
             return _assemble(
                 kind, {'message': message, 'message_type': message_type})
-        else:
-            return _assemble(
-                kind,
-                args={'message': message, 'message_type': message_type},
-                body=[_assemble_channel(channel) for channel in channels])
+        return _assemble(
+            kind,
+            args={'message': message, 'message_type': message_type},
+            body=[_assemble_channel(channel) for channel in channels])
 
 @_send
 def calibrate(axis):
@@ -332,16 +331,15 @@ def execute_script(label, inputs=None):
     args = {'label': label}
     if inputs is None:
         return _assemble(kind, args)
-    else:
-        farmware = label.replace(' ', '_').replace('-', '_').lower()
-        body = []
-        for key, value in inputs.items():
-            if key.startswith(farmware):
-                input_name = key
-            else:
-                input_name = '{}_{}'.format(farmware, key)
-            body.append(assemble_pair(input_name, value))
-        return _assemble(kind, args, body)
+    farmware = label.replace(' ', '_').replace('-', '_').lower()
+    body = []
+    for key, value in inputs.items():
+        if key.startswith(farmware):
+            input_name = key
+        else:
+            input_name = '{}_{}'.format(farmware, key)
+        body.append(assemble_pair(input_name, value))
+    return _assemble(kind, args, body)
 
 def _set_docstring_for_execute_script_alias(func):
     func.__doc__ = execute_script.__doc__

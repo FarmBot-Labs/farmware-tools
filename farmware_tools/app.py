@@ -75,8 +75,7 @@ def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
         print(request_string)
         if return_dict:
             return {'json': json.dumps(request_string), 'status_code': 0}
-        else:
-            return request_string
+        return request_string
 
     try:  # verbose output if testing
         if api['verbose']:
@@ -110,8 +109,7 @@ def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
         print(text_response)
     if return_dict:
         return {'json': json_response, 'status_code': status_code}
-    else:
-        return json_response
+    return json_response
 
 def post(endpoint, payload, return_dict=False, get_info=_get_required_info):
     """Send a POST HTTP request to the FarmBot Web App.
