@@ -210,9 +210,7 @@ def search_logs(search_payload, get_info=_get_required_info):
     Args:
         search_payload (dict): i.e., {'x': 5}
             Allowed keys include:
-                verbosity, type, message,
-                id, created_at, updated_at, major_version, minor_version,
-                channels, x, y, z
+                verbosity, type, message, x, y, z
     """
     return get('logs/search', payload=search_payload, get_info=get_info)
 
