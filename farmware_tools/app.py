@@ -125,15 +125,18 @@ def post(endpoint, payload, return_dict=False, get_info=_get_required_info):
         }
     return request('POST', endpoint, **kwargs)
 
-def get(endpoint, _id=None, return_dict=False, get_info=_get_required_info):
+def get(endpoint, _id=None, payload=None, return_dict=False,
+        get_info=_get_required_info):
     """Send a GET HTTP request to the FarmBot Web App.
 
     Args:
         endpoint (str): FarmBot Web App endpoint.
         _id (int, optional): ID of a resource to GET. Defaults to None.
+        payload (dict, optional): Defaults to None.
     """
     kwargs = {
         '_id': _id,
+        'payload': payload,
         'return_dict': return_dict,
         'get_info': get_info
         }
@@ -200,6 +203,18 @@ def log(message, message_type='info', get_info=_get_required_info):
     """
     payload = {'message': message, 'type': message_type}
     return post('logs', payload=payload, get_info=get_info)
+
+def search_logs(search_payload, get_info=_get_required_info):
+    """Use a search term to get a filtered selection of logs from the web app.
+
+    Args:
+        search_payload (dict): i.e., {'x': 5}
+            Allowed keys include:
+                verbosity, type, message,
+                id, created_at, updated_at, major_version, minor_version,
+                channels, x, y, z
+    """
+    return get('logs/search', payload=search_payload, get_info=get_info)
 
 def search_points(search_payload, get_info=_get_required_info):
     """Use a search term to get a filtered selection of points from the web app.

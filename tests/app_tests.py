@@ -13,6 +13,7 @@ def run_tests(app_login):
     print(app.request('GET', 'tools', get_info=app_login))
     print(app.request('GET', 'tools', return_dict=True, get_info=app_login))
     print(app.get('sensors', get_info=app_login))
+    print(app.search_logs({'type': 'warn'}, get_info=app_login))
     print(app.get('sensors', return_dict=True, get_info=app_login))
     print(app.get('invalid_endpoint', get_info=app_login))
     print(app.post('tools', payload='invalid payload', get_info=app_login))
