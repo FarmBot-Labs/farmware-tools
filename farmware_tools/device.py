@@ -338,7 +338,7 @@ def execute_script(label, inputs=None):
             input_name = key
         else:
             input_name = '{}_{}'.format(farmware, key)
-        body.append(assemble_pair(input_name, value))
+        body.append(assemble_pair(input_name, str(value)))
     return _assemble(kind, args, body)
 
 def _set_docstring_for_execute_script_alias(func):
@@ -546,7 +546,7 @@ def set_user_env(key, value):
         value (str): ENV value
     """
     kind = 'set_user_env'
-    body = [assemble_pair(key, value)]
+    body = [assemble_pair(key, str(value))]
     return _assemble(kind, {}, body)
 
 @_send
