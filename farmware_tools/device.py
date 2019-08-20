@@ -6,10 +6,9 @@ from __future__ import print_function
 import os
 import sys
 import uuid
-import json
-import struct
 from functools import wraps
 import requests
+from ._util import _request_write, _response_read
 from .auxiliary import Color
 from .env import Env
 
@@ -78,18 +77,9 @@ def _device_request_v2(payload):
     'Make a request to the device Farmware API (v2).'
     if not ENV.farmware_api_available():
         return
-    HEADER_FORMAT = '>HII'
-    with open(ENV.request_pipe, 'wb') as request_pipe:
-        message_bytes = bytes(json.dumps(payload), 'utf-8')
-        header = struct.pack(HEADER_FORMAT, 0xFBFB, 0, len(message_bytes))
-        request_pipe.write(header + message_bytes)
-    with open(ENV.response_pipe, 'rb') as response_pipe:
-        header = response_pipe.read(10)
-        if header == b'':
-            print(COLOR.error('No response from FBOS'))
-            return 'no response'
-        (_, _, size) = struct.unpack(HEADER_FORMAT, header)
-        return json.loads(response_pipe.read(size).decode())
+    _request_write(payload)
+    rpc_uuid = payload.get('args', {}).get('label')
+    return _response_read(rpc_uuid)
 
 def _device_state_fetch_v2():
     'Get info from the device Farmware API (v2).'
