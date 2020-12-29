@@ -6,7 +6,6 @@ from __future__ import print_function
 import sys
 import time
 import json
-import base64
 import requests
 from .auxiliary import Color
 from .env import Env
@@ -17,13 +16,10 @@ ENV = Env()
 
 def _get_required_info():
     'Get the info required to send an HTTP request to the FarmBot Web App.'
-    token = ENV.token
-    encoded_payload = token.split('.')[1]
-    encoded_payload += '=' * (4 - len(encoded_payload) % 4)
-    json_payload = base64.b64decode(encoded_payload).decode('utf-8')
-    server = json.loads(json_payload)['iss']
+    server = ENV.decoded_token['iss']
     url = 'http{}:{}/api/'.format('s' if ':443' in server else '', server)
-    return {'token': token, 'url': url}
+    return {'token': ENV.token, 'url': url}
+
 
 
 def _error(message):
@@ -95,7 +91,13 @@ def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
         'content-type': 'application/json'}
     if payload is not None:
         request_kwargs['json'] = payload
-    response = requests.request(method, url, **request_kwargs)
+    try:
+        response = requests.request(method, url, **request_kwargs)
+    except:
+        print(request_string)
+        if return_dict:
+            return {'json': json.dumps(request_string), 'status_code': 0}
+        return request_string
     status_code = response.status_code
     colorized_status_code = COLOR.colorize_response_code(status_code)
     bold_request_string = COLOR.make_bold(request_string)

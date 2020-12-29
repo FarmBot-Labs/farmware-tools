@@ -35,8 +35,8 @@ def get_config_value(farmware_name, config_name, value_type=int,
         log('Farmware manifest for `{}` not found.'.format(farmware_name), 'warn')
         return value_type(os.environ[namespaced_config])
     else:  # Found config data.
-        configs = manifest['config'].values(
-        ) if Env().use_v2() else manifest['config']
+        v2 = Env().use_v2() or Env().use_mqtt()
+        configs = manifest['config'].values() if v2 else manifest['config']
 
     # Step 2. Search for the config name.
     try:  # to retrieve default config value
@@ -52,7 +52,7 @@ def get_config_value(farmware_name, config_name, value_type=int,
     except KeyError:
         log('Using the default value for `{}`.'.format(config_name))
         value = default
-    return value
+    return value_type(value)
 
 
 def set_config_value(farmware_name, config_name, value):

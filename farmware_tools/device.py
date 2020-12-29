@@ -8,7 +8,7 @@ import sys
 import uuid
 from functools import wraps
 import requests
-from ._util import _request_write, _response_read
+from ._util import _request_write, _response_read, _mqtt_request, _mqtt_status
 from .auxiliary import Color
 from .env import Env
 
@@ -115,6 +115,8 @@ def _post(endpoint, payload):
     """
     if ENV.use_v2():
         return _device_request_v2(payload)
+    if ENV.use_mqtt():
+        return _mqtt_request(payload)
     return _device_request('POST', endpoint, payload)
 
 
@@ -131,6 +133,8 @@ def _get(endpoint):
     """
     if ENV.use_v2():
         return _device_state_fetch_v2()
+    if ENV.use_mqtt():
+        return _mqtt_status()
     return _device_request('GET', endpoint)
 
 
@@ -141,7 +145,7 @@ def get_bot_state():
         _error('Device info could not be retrieved.')
         _on_error()
         return {}
-    return bot_state if ENV.use_v2() else bot_state.json()
+    return bot_state if (ENV.use_v2() or ENV.use_mqtt()) else bot_state.json()
 
 
 def _send(function):
@@ -171,7 +175,7 @@ def send_celery_script(command, rpc_id=None):
     return {
         'command': command,
         'sent': rpc,
-        'response': response if ENV.use_v2() else {}
+        'response': response if (ENV.use_v2() or ENV.use_mqtt()) else {}
     }
 
 
@@ -696,14 +700,18 @@ def get_current_position(axis='all', _get_bot_state=get_bot_state):
     if args_ok:
         if axis in ['x', 'y', 'z']:
             try:
-                return _get_bot_state()['location_data']['position'][axis]
+                axis_val = _get_bot_state()['location_data']['position'][axis]
             except KeyError:
                 _error('Position `{}` value unknown.'.format(axis))
+            else:
+                return float(axis_val)
         else:
             try:
-                return _get_bot_state()['location_data']['position']
+                position = _get_bot_state()['location_data']['position']
             except KeyError:
                 _error('Position unknown.')
+            else:
+                return {axis: float(value) for axis, value in position.items()}
 
 
 def get_pin_value(pin_number, _get_bot_state=get_bot_state):

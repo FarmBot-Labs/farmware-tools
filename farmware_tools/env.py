@@ -3,6 +3,8 @@
 '''Farmware Tools: ENV vars.'''
 
 import os
+import json
+import base64
 
 # Farmware API ENV variables
 FARMWARE_API_PREFIX = 'FARMWARE_API_V2_'
@@ -32,6 +34,7 @@ class Env(object):
         self.fbos_version = FBOS_VERSION
         self.bot_state_dir = BOT_STATE_DIR
         self.token = TOKEN or LEGACY_TOKEN
+        self.decoded_token = self.decode_token()
 
     @staticmethod
     def get_version_parts(version_string):
@@ -62,3 +65,20 @@ class Env(object):
         if self.use_v2():
             return self.request_pipe is not None and self.response_pipe is not None
         return os.getenv('FARMWARE_URL') is not None and self.token is not None
+
+    def decode_token(self):
+        'Decode API token.'
+        if self.token is None:
+            return {}
+        encoded_payload = self.token.split('.')[1]
+        encoded_payload += '=' * (4 - len(encoded_payload) % 4)
+        json_payload = base64.b64decode(encoded_payload).decode('utf-8')
+        return json.loads(json_payload)
+
+    def use_mqtt(self):
+        'Determine if MQTT should be used.'
+        try:
+            import paho.mqtt.client as mqtt
+        except ImportError:
+            return False
+        return self.token is not None
