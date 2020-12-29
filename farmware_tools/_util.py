@@ -14,6 +14,7 @@ ENV = Env()
 HEADER_FORMAT = '>HII'
 TIMEOUT_SECONDS = 10
 
+
 def _open_socket(address):
     opened_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     opened_socket.settimeout(TIMEOUT_SECONDS)
@@ -23,6 +24,7 @@ def _open_socket(address):
         print('Could not connect to socket: address not found.')
         sys.exit(1)
     return opened_socket
+
 
 class _ResponseBuffer():
     '''Collection of responses from FarmBot OS.'''
@@ -56,11 +58,13 @@ class _ResponseBuffer():
                 return response
         return 'no response'
 
+
 # Listen for responses from FarmBot OS.
 if ENV.use_v2() and ENV.farmware_api_available():
     RESPONSE_BUFFER = _ResponseBuffer()
     RESPONSES = threading.Thread(target=RESPONSE_BUFFER.listen, daemon=True)
     RESPONSES.start()
+
 
 def _request_write(payload):
     'Make a request to FarmBot OS.'
@@ -69,6 +73,7 @@ def _request_write(payload):
     header = struct.pack(HEADER_FORMAT, 0xFBFB, 0, len(message_bytes))
     request_socket.sendall(header + message_bytes)
     request_socket.close()
+
 
 def _response_read(rpc_uuid):
     'Read a response from FarmBot OS for the provided request RPC UUID.'

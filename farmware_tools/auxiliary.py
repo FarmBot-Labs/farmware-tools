@@ -6,6 +6,7 @@ from __future__ import print_function
 import re
 from string import punctuation
 
+
 class Color(object):
     """Color codes for colorizing terminal output."""
 
@@ -28,7 +29,7 @@ class Color(object):
         'blue': 34,
         'reset': 0,
         'bold': 1,
-        }
+    }
 
     def get_color_code(self, string):
         """Get a color code to use in a string.
@@ -94,26 +95,29 @@ class Color(object):
         return '{color}{status_code}{reset}'.format(
             color=color, status_code=status_code, reset=self.reset)
 
+
 def snake_case(string):
     'Convert a string to snake_case.'
     string = re.sub('(.)([A-Z][a-z])', r'\1_\2', string)  # *Aa -> *_Aa
     string = re.sub('(.)([0-9]+)', r'\1_\2', string)  # *00 -> *_00
     string = string.replace('-', '_')  # A-B -> A_B
-    string = ''.join(c for c in string if c not in punctuation.replace('_', ''))
+    string = ''.join(
+        c for c in string if c not in punctuation.replace('_', ''))
     string = string.replace(' ', '_').strip('_').lower()  # _A B -> a_b
     string = re.sub('_+', '_', string)  # a__b -> a_b
     return string
 
+
 if __name__ == '__main__':
     COLOR = Color()
     for color_name, number in COLOR.color_number.items():
-        print(u'{color}  {block}{bold}{block}{color}' \
-        ' {label} {bold}(bold){reset}'.format(
-            color=COLOR.get_color_code(color_name),
-            bold=COLOR.bold,
-            label=color_name,
-            block=u'\u2588' * 2,
-            reset=COLOR.reset))
+        print(u'{color}  {block}{bold}{block}{color}'
+              ' {label} {bold}(bold){reset}'.format(
+                  color=COLOR.get_color_code(color_name),
+                  bold=COLOR.bold,
+                  label=color_name,
+                  block=u'\u2588' * 2,
+                  reset=COLOR.reset))
     print()
     print(COLOR.colorize_celery_script('kind', '{}'))
     print(COLOR.colorize_response_code(200))

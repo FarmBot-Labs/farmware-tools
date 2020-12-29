@@ -21,6 +21,7 @@ FARMBOT_API_PREFIX = 'FARMBOT_API_'
 TOKEN = os.getenv(FARMBOT_API_PREFIX + 'TOKEN')
 LEGACY_TOKEN = os.getenv('API_TOKEN')
 
+
 class Env(object):
     'Farmware environment variables.'
 
@@ -41,7 +42,8 @@ class Env(object):
     def fbos_at_least(self, major, minor=None, patch=None):
         'Determine if the current FBOS version meets the version requirement.'
         current_version = self.get_version_parts(self.fbos_version)
-        required_version = [int(p) for p in [major, minor, patch] if p is not None]
+        required_version = [int(p)
+                            for p in [major, minor, patch] if p is not None]
         for part, required_version_part in enumerate(required_version):
             if current_version[part] != required_version_part:
                 # Versions are not equal. Check if current meets requirement.

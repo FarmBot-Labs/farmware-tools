@@ -14,6 +14,7 @@ from .env import Env
 COLOR = Color()
 ENV = Env()
 
+
 def _get_required_info():
     'Get the info required to send an HTTP request to the FarmBot Web App.'
     token = ENV.token
@@ -24,6 +25,7 @@ def _get_required_info():
     url = 'http{}:{}/api/'.format('s' if ':443' in server else '', server)
     return {'token': token, 'url': url}
 
+
 def _error(message):
     if ENV.farmware_api_available():
         log(message, 'error')
@@ -31,10 +33,12 @@ def _error(message):
     else:
         print(COLOR.error(message))
 
+
 def _simplify_text_response(text, code):
     'Reduce API text response content to relevant error string.'
     relevant_tags = ['h1', 'h2']
     to_strip = [' ', '<h1>', '</h1>', '<h2>', '</h2>']
+
     def _strip_strings(from_string):
         for strip_string in to_strip:
             from_string = from_string.strip(strip_string)
@@ -51,6 +55,7 @@ def _simplify_text_response(text, code):
         return 'Unable to reduce text response due to {!r}'.format(exception)
     else:
         return '({}) {}'.format(code, simple_error_string)
+
 
 def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
             get_info=_get_required_info):
@@ -94,7 +99,8 @@ def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
     status_code = response.status_code
     colorized_status_code = COLOR.colorize_response_code(status_code)
     bold_request_string = COLOR.make_bold(request_string)
-    request_details = '{}: {}'.format(colorized_status_code, bold_request_string)
+    request_details = '{}: {}'.format(
+        colorized_status_code, bold_request_string)
     if verbose:
         print()
         print(request_details)
@@ -111,6 +117,7 @@ def request(raw_method, endpoint, _id=None, payload=None, return_dict=False,
         return {'json': json_response, 'status_code': status_code}
     return json_response
 
+
 def post(endpoint, payload, return_dict=False, get_info=_get_required_info):
     """Send a POST HTTP request to the FarmBot Web App.
 
@@ -122,8 +129,9 @@ def post(endpoint, payload, return_dict=False, get_info=_get_required_info):
         'payload': payload,
         'return_dict': return_dict,
         'get_info': get_info
-        }
+    }
     return request('POST', endpoint, **kwargs)
+
 
 def get(endpoint, _id=None, payload=None, return_dict=False,
         get_info=_get_required_info):
@@ -139,8 +147,9 @@ def get(endpoint, _id=None, payload=None, return_dict=False,
         'payload': payload,
         'return_dict': return_dict,
         'get_info': get_info
-        }
+    }
     return request('GET', endpoint, **kwargs)
+
 
 def patch(endpoint, _id=None, payload=None, return_dict=False,
           get_info=_get_required_info):
@@ -156,8 +165,9 @@ def patch(endpoint, _id=None, payload=None, return_dict=False,
         'payload': payload,
         'return_dict': return_dict,
         'get_info': get_info
-        }
+    }
     return request('PATCH', endpoint, **kwargs)
+
 
 def put(endpoint, _id=None, payload=None, return_dict=False,
         get_info=_get_required_info):
@@ -173,8 +183,9 @@ def put(endpoint, _id=None, payload=None, return_dict=False,
         'payload': payload,
         'return_dict': return_dict,
         'get_info': get_info
-        }
+    }
     return request('PUT', endpoint, **kwargs)
+
 
 def delete(endpoint, _id=None, return_dict=False, get_info=_get_required_info):
     """Send a DELETE HTTP request to the FarmBot Web App.
@@ -187,8 +198,9 @@ def delete(endpoint, _id=None, return_dict=False, get_info=_get_required_info):
         '_id': _id,
         'return_dict': return_dict,
         'get_info': get_info
-        }
+    }
     return request('DELETE', endpoint, **kwargs)
+
 
 def log(message, message_type='info', get_info=_get_required_info):
     """POST a log message to the Web App.
@@ -204,6 +216,7 @@ def log(message, message_type='info', get_info=_get_required_info):
     payload = {'message': message, 'type': message_type}
     return post('logs', payload=payload, get_info=get_info)
 
+
 def search_logs(search_payload, get_info=_get_required_info):
     """Use a search term to get a filtered selection of logs from the web app.
 
@@ -213,6 +226,7 @@ def search_logs(search_payload, get_info=_get_required_info):
                 verbosity, type, message, x, y, z
     """
     return get('logs/search', payload=search_payload, get_info=get_info)
+
 
 def search_points(search_payload, get_info=_get_required_info):
     """Use a search term to get a filtered selection of points from the web app.
@@ -225,24 +239,29 @@ def search_points(search_payload, get_info=_get_required_info):
     """
     return post('points/search', payload=search_payload, get_info=get_info)
 
+
 def download_plants(get_info=_get_required_info):
     """Get plant data from the web app."""
     search_payload = {'pointer_type': 'Plant'}
     return search_points(search_payload, get_info)
+
 
 def get_points(get_info=_get_required_info):
     """Get generic point data from the web app."""
     search_payload = {'pointer_type': 'GenericPointer'}
     return search_points(search_payload, get_info)
 
+
 def get_plants(get_info=_get_required_info):
     """Get plant data from the web app."""
     return download_plants(get_info)
+
 
 def get_toolslots(get_info=_get_required_info):
     """Get tool slot data from the web app."""
     search_payload = {'pointer_type': 'ToolSlot'}
     return search_points(search_payload, get_info)
+
 
 def get_property(endpoint, field, _id=None, get_info=_get_required_info):
     """Get the value of a specific property field of a web app record.
@@ -258,6 +277,7 @@ def get_property(endpoint, field, _id=None, get_info=_get_required_info):
     except (KeyError, TypeError):
         _error('{} not found.'.format(field))
 
+
 def add_plant(x, y, get_info=_get_required_info, **kwargs):
     """Add a plant to the garden map.
 
@@ -271,6 +291,7 @@ def add_plant(x, y, get_info=_get_required_info, **kwargs):
         if value is not None:
             new_plant[key] = value
     return post('points', payload=new_plant, get_info=get_info)
+
 
 def find_sequence_by_name(name, get_info=_get_required_info):
     """Find the sequence_id for a given sequence name.
@@ -293,6 +314,7 @@ def find_sequence_by_name(name, get_info=_get_required_info):
         _error(u'Sequence `{}` not found.'.format(uname))
     else:
         return sequence_id
+
 
 if __name__ == '__main__':
     TIMESTAMP = str(int(time.time()))

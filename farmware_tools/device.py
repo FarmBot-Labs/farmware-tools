@@ -21,9 +21,11 @@ ALLOWED_MESSAGE_CHANNELS = ['ticker', 'toast', 'email', 'espeak']
 ALLOWED_PACKAGES = ['farmbot_os', 'arduino_firmware', 'farmware']
 RESPONSE_ERROR_LOG_UUID = str(uuid.uuid4())
 
+
 def _on_error():
     if ENV.farmware_api_available():
         sys.exit(1)
+
 
 def _check_celery_script(command):
     try:
@@ -40,12 +42,14 @@ def _check_celery_script(command):
                 _on_error()
         return kind, args, body
 
+
 def rpc_wrapper(command, rpc_id=None):
     """Wrap a command in `rpc_request` with the given `rpc_id`."""
     return {
         'kind': 'rpc_request',
         'args': {'label': rpc_id or str(uuid.uuid4())},
         'body': [command]}
+
 
 def _device_request(method, endpoint, payload=None):
     'Make a request to the device Farmware API.'
@@ -73,6 +77,7 @@ def _device_request(method, endpoint, payload=None):
         _on_error()
     return response
 
+
 def _device_request_v2(payload):
     'Make a request to the device Farmware API (v2).'
     if not ENV.farmware_api_available():
@@ -80,6 +85,7 @@ def _device_request_v2(payload):
     _request_write(payload)
     rpc_uuid = payload.get('args', {}).get('label')
     return _response_read(rpc_uuid)
+
 
 def _device_state_fetch_v2():
     'Get info from the device Farmware API (v2).'
@@ -93,6 +99,7 @@ def _device_state_fetch_v2():
             value = value_file.read()
             return value if value != '' else None
     return _crawl(ENV.bot_state_dir)
+
 
 def _post(endpoint, payload):
     """Post a payload to the device Farmware API.
@@ -110,6 +117,7 @@ def _post(endpoint, payload):
         return _device_request_v2(payload)
     return _device_request('POST', endpoint, payload)
 
+
 def _get(endpoint):
     """Get info from the device Farmware API.
 
@@ -125,6 +133,7 @@ def _get(endpoint):
         return _device_state_fetch_v2()
     return _device_request('GET', endpoint)
 
+
 def get_bot_state():
     """Get the device state."""
     bot_state = _get('bot/state')
@@ -133,6 +142,7 @@ def get_bot_state():
         _on_error()
         return {}
     return bot_state if ENV.use_v2() else bot_state.json()
+
 
 def _send(function):
     @wraps(function)
@@ -144,10 +154,12 @@ def _send(function):
         return send_celery_script(function(*args, **kwargs), rpc_id=rpc_id)
     return wrapper
 
+
 def send_celery_script(command, rpc_id=None):
     """Send a Celery Script command."""
     kind, args, body = _check_celery_script(command)
-    temp_no_rpc_kinds = ['read_pin', 'write_pin', 'set_pin_io_mode', 'update_farmware']
+    temp_no_rpc_kinds = ['read_pin', 'write_pin',
+                         'set_pin_io_mode', 'update_farmware']
     no_rpc = kind in temp_no_rpc_kinds and not ENV.fbos_at_least(7, 0, 1)
     if kind == 'rpc_request' or no_rpc:
         rpc = command
@@ -160,7 +172,8 @@ def send_celery_script(command, rpc_id=None):
         'command': command,
         'sent': rpc,
         'response': response if ENV.use_v2() else {}
-        }
+    }
+
 
 def log(message, message_type='info', channels=None, rpc_id=None):
     """Send a send_message command to post a log to the Web App.
@@ -174,11 +187,13 @@ def log(message, message_type='info', channels=None, rpc_id=None):
     """
     return send_message(message, message_type, channels, rpc_id=rpc_id)
 
+
 def _assemble(kind, args, body=None):
     'Assemble a celery script command.'
     if body is None:
         return {'kind': kind, 'args': args}
     return {'kind': kind, 'args': args, 'body': body}
+
 
 def _error(error_text):
     if ENV.farmware_api_available():
@@ -186,12 +201,14 @@ def _error(error_text):
     else:
         print(COLOR.error(error_text))
 
+
 def _cs_error(kind, arg):
     if ENV.farmware_api_available():
         log('Invalid arg `{}` for `{}`'.format(arg, kind), 'error')
     else:
         print(COLOR.error('Invalid input `{arg}` in `{kind}`'.format(
             arg=arg, kind=kind)))
+
 
 def _check_arg(kind, arg, accepted):
     'Error and exit for invalid command arguments.'
@@ -202,11 +219,13 @@ def _check_arg(kind, arg, accepted):
         arg_ok = False
     return arg_ok
 
+
 def assemble_coordinate(coord_x, coord_y, coord_z):
     """Assemble a coordinate Celery Script node from x, y, and z."""
     return {
         'kind': 'coordinate',
         'args': {'x': coord_x, 'y': coord_y, 'z': coord_z}}
+
 
 def _assemble_channel(name):
     'Assemble a channel body item (for `send_message`).'
@@ -214,14 +233,17 @@ def _assemble_channel(name):
         'kind': 'channel',
         'args': {'channel_name': name}}
 
+
 def assemble_pair(label, value):
     """Assemble a 'pair' Celery Script node (for use as a body item)."""
     return {
         'kind': 'pair',
         'args': {'label': label, 'value': value}}
 
+
 def _nothing():
     return {'kind': 'nothing', 'args': {}}
+
 
 def _check_coordinate(coordinate):
     coordinate_ok = True
@@ -234,6 +256,7 @@ def _check_coordinate(coordinate):
         _cs_error('coordinate', coordinate)
         _on_error()
     return coordinate_ok
+
 
 @_send
 def send_message(message, message_type, channels=None):
@@ -260,6 +283,7 @@ def send_message(message, message_type, channels=None):
             args={'message': message, 'message_type': message_type},
             body=[_assemble_channel(channel) for channel in channels])
 
+
 @_send
 def calibrate(axis):
     """Send command: calibrate.
@@ -271,6 +295,7 @@ def calibrate(axis):
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
+
 
 @_send
 def check_updates(package):
@@ -284,17 +309,20 @@ def check_updates(package):
     if args_ok:
         return _assemble(kind, {'package': package})
 
+
 @_send
 def emergency_lock():
     """Send command: emergency_lock."""
     kind = 'emergency_lock'
     return _assemble(kind, {})
 
+
 @_send
 def emergency_unlock():
     """Send command: emergency_unlock."""
     kind = 'emergency_unlock'
     return _assemble(kind, {})
+
 
 @_send
 def execute(sequence_id):
@@ -307,6 +335,7 @@ def execute(sequence_id):
     kind = 'execute'
     args = {'sequence_id': sequence_id}
     return _assemble(kind, args)
+
 
 @_send
 def execute_script(label, inputs=None):
@@ -331,14 +360,17 @@ def execute_script(label, inputs=None):
         body.append(assemble_pair(input_name, str(value)))
     return _assemble(kind, args, body)
 
+
 def _set_docstring_for_execute_script_alias(func):
     func.__doc__ = execute_script.__doc__
     return func
+
 
 @_set_docstring_for_execute_script_alias
 def run_farmware(label, inputs=None, rpc_id=None):
     """Alias for `execute_script`"""
     return execute_script(label, inputs, rpc_id=rpc_id)
+
 
 @_send
 def factory_reset(package):
@@ -352,6 +384,7 @@ def factory_reset(package):
     if args_ok:
         return _assemble(kind, {'package': package})
 
+
 @_send
 def find_home(axis):
     """Send command: find_home.
@@ -363,6 +396,7 @@ def find_home(axis):
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
+
 
 @_send
 def home(axis):
@@ -376,6 +410,7 @@ def home(axis):
     if args_ok:
         return _assemble(kind, {'axis': axis})
 
+
 @_send
 def install_farmware(url):
     """Send command: install_farmware.
@@ -386,11 +421,13 @@ def install_farmware(url):
     kind = 'install_farmware'
     return _assemble(kind, {'url': url})
 
+
 @_send
 def install_first_party_farmware():
     """Send command: install_first_party_farmware."""
     kind = 'install_first_party_farmware'
     return _assemble(kind, {})
+
 
 @_send
 def move_absolute(location, speed, offset):
@@ -413,6 +450,7 @@ def move_absolute(location, speed, offset):
                                 'speed': speed,
                                 'offset': offset})
 
+
 @_send
 def move_relative(x, y, z, speed):
     """Send command: move_relative.
@@ -431,11 +469,13 @@ def move_relative(x, y, z, speed):
                                 'z': z,
                                 'speed': speed})
 
+
 @_send
 def power_off():
     """Send command: power_off."""
     kind = 'power_off'
     return _assemble(kind, {})
+
 
 @_send
 def read_pin(pin_number, label, pin_mode):
@@ -454,11 +494,13 @@ def read_pin(pin_number, label, pin_mode):
                                 'label': label,
                                 'pin_mode': pin_mode})
 
+
 @_send
 def read_status():
     """Send command: read_status."""
     kind = 'read_status'
     return _assemble(kind, {})
+
 
 @_send
 def reboot(package='farmbot_os'):
@@ -467,6 +509,7 @@ def reboot(package='farmbot_os'):
     args_ok = _check_arg(kind, package, ALLOWED_PACKAGES)
     if args_ok:
         return _assemble(kind, {'package': package})
+
 
 @_send
 def register_gpio(sequence_id, pin_number):
@@ -487,6 +530,7 @@ def register_gpio(sequence_id, pin_number):
         return _assemble(kind, {'sequence_id': sequence_id,
                                 'pin_number': pin_number})
 
+
 @_send
 def remove_farmware(package):
     """Send command: remove_farmware.
@@ -496,6 +540,7 @@ def remove_farmware(package):
     """
     kind = 'remove_farmware'
     return _assemble(kind, {'package': package})
+
 
 @_send
 def set_pin_io_mode(pin_io_mode, pin_number):
@@ -512,6 +557,7 @@ def set_pin_io_mode(pin_io_mode, pin_number):
         return _assemble(kind, {'pin_io_mode': pin_io_mode,
                                 'pin_number': pin_number})
 
+
 @_send
 def set_servo_angle(pin_number, pin_value):
     """Send command: set_servo_angle.
@@ -527,6 +573,7 @@ def set_servo_angle(pin_number, pin_value):
         return _assemble(kind, {'pin_number': pin_number,
                                 'pin_value': pin_value})
 
+
 @_send
 def set_user_env(key, value):
     """Send command: set_user_env.
@@ -539,17 +586,20 @@ def set_user_env(key, value):
     body = [assemble_pair(key, str(value))]
     return _assemble(kind, {}, body)
 
+
 @_send
 def sync():
     """Send command: sync."""
     kind = 'sync'
     return _assemble(kind, {})
 
+
 @_send
 def take_photo():
     """Send command: take_photo."""
     kind = 'take_photo'
     return _assemble(kind, {})
+
 
 @_send
 def toggle_pin(pin_number):
@@ -562,6 +612,7 @@ def toggle_pin(pin_number):
     args_ok = _check_arg(kind, pin_number, range(0, 70))
     if args_ok:
         return _assemble(kind, {'pin_number': pin_number})
+
 
 @_send
 def unregister_gpio(pin_number):
@@ -578,6 +629,7 @@ def unregister_gpio(pin_number):
     if args_ok:
         return _assemble(kind, {'pin_number': pin_number})
 
+
 @_send
 def update_farmware(package):
     """Send command: update_farmware.
@@ -588,6 +640,7 @@ def update_farmware(package):
     kind = 'update_farmware'
     return _assemble(kind, {'package': package})
 
+
 @_send
 def wait(milliseconds):
     """Send command: wait.
@@ -597,6 +650,7 @@ def wait(milliseconds):
     """
     kind = 'wait'
     return _assemble(kind, {'milliseconds': milliseconds})
+
 
 @_send
 def write_pin(pin_number, pin_value, pin_mode):
@@ -615,6 +669,7 @@ def write_pin(pin_number, pin_value, pin_mode):
                                 'pin_value': pin_value,
                                 'pin_mode': pin_mode})
 
+
 @_send
 def zero(axis):
     """Send command: zero.
@@ -626,6 +681,7 @@ def zero(axis):
     args_ok = _check_arg(kind, axis, ALLOWED_AXIS_VALUES)
     if args_ok:
         return _assemble(kind, {'axis': axis})
+
 
 def get_current_position(axis='all', _get_bot_state=get_bot_state):
     """Get the current position.
@@ -649,6 +705,7 @@ def get_current_position(axis='all', _get_bot_state=get_bot_state):
             except KeyError:
                 _error('Position unknown.')
 
+
 def get_pin_value(pin_number, _get_bot_state=get_bot_state):
     """Get a value from a pin.
 
@@ -661,6 +718,7 @@ def get_pin_value(pin_number, _get_bot_state=get_bot_state):
         _error('Pin `{}` value unknown.'.format(pin_number))
     else:
         return value
+
 
 if __name__ == '__main__':
     send_celery_script({'kind': 'read_status', 'args': {}})

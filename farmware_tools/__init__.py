@@ -11,6 +11,7 @@ with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as version_file:
 
 __version__ = VERSION
 
+
 def get_config_value(farmware_name, config_name, value_type=int,
                      _get_state=get_bot_state):
     """Get the value of a Farmware config input.
@@ -34,7 +35,8 @@ def get_config_value(farmware_name, config_name, value_type=int,
         log('Farmware manifest for `{}` not found.'.format(farmware_name), 'warn')
         return value_type(os.environ[namespaced_config])
     else:  # Found config data.
-        configs = manifest['config'].values() if Env().use_v2() else manifest['config']
+        configs = manifest['config'].values(
+        ) if Env().use_v2() else manifest['config']
 
     # Step 2. Search for the config name.
     try:  # to retrieve default config value
@@ -51,6 +53,7 @@ def get_config_value(farmware_name, config_name, value_type=int,
         log('Using the default value for `{}`.'.format(config_name))
         value = default
     return value
+
 
 def set_config_value(farmware_name, config_name, value):
     """Set the value of a Farmware config using the Farmware's namespace.
