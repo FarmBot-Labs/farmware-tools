@@ -434,7 +434,7 @@ def install_first_party_farmware():
 
 
 @_send
-def move_absolute(location, speed, offset):
+def move_absolute(location, speed=100, offset=None):
     """Send command: move_absolute.
 
     Celery Script 'coordinate' nodes can be assembled using
@@ -447,6 +447,8 @@ def move_absolute(location, speed, offset):
     """
     kind = 'move_absolute'
     args_ok = _check_coordinate(location)
+    if offset is None:
+        offset = assemble_coordinate(0, 0, 0)
     args_ok = _check_coordinate(offset)
     args_ok = _check_arg(kind, speed, range(1, 101))
     if args_ok:
@@ -456,7 +458,7 @@ def move_absolute(location, speed, offset):
 
 
 @_send
-def move_relative(x, y, z, speed):
+def move_relative(x=0, y=0, z=0, speed=100):
     """Send command: move_relative.
 
     Args:

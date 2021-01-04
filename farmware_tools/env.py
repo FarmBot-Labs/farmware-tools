@@ -78,7 +78,7 @@ class Env(object):
     def use_mqtt(self):
         'Determine if MQTT should be used.'
         try:
-            import paho.mqtt.client as mqtt
+            import paho.mqtt
         except ImportError:
             return False
         return self.token is not None
