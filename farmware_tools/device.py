@@ -476,6 +476,67 @@ def move_relative(x=0, y=0, z=0, speed=100):
                                 'speed': speed})
 
 
+class Move():
+    'Computed move command handler.'
+
+    def __init__(self):
+        self.command = {'kind': 'move', 'args': {}, 'body': []}
+        self.sent = False
+
+    def __enter__(self):
+        return self
+
+    @staticmethod
+    def create_numeric_operand(value):
+        'Create numeric operand.'
+        return {'kind': 'numeric', 'args': {'number': value}}
+
+    @staticmethod
+    def create_random_operand(variance):
+        'Create random operand.'
+        return {'kind': 'random', 'args': {'variance': variance}}
+
+    def add_item(self, item):
+        'Add movement item to body.'
+        self.command['body'].append(item)
+
+    def add_axis_overwrite(self, axis, operand):
+        'Add axis overwrite.'
+        self.add_item({'kind': 'axis_overwrite',
+                       'args': {'axis': axis, 'axis_operand': operand}})
+
+    def add_axis_addition(self, axis, operand):
+        'Add axis addition.'
+        self.add_item({'kind': 'axis_addition',
+                       'args': {'axis': axis, 'axis_operand': operand}})
+
+    def set_position(self, axis, value):
+        'Set axis position.'
+        self.add_axis_overwrite(axis, self.create_numeric_operand(value))
+
+    def add_offset(self, axis, value):
+        'Add axis offset.'
+        self.add_axis_addition(axis, self.create_numeric_operand(value))
+
+    def add_random_offset(self, axis, value):
+        'Add axis random movement.'
+        self.add_axis_addition(axis, self.create_random_operand(value))
+
+    @_send
+    def send(self):
+        'Send movement command.'
+        self.sent = True
+        return self.command
+
+    def clear(self):
+        'Clear all items from body.'
+        self.command['body'] = []
+
+    def __exit__(self, *_args):
+        if not self.sent:
+            self.send()
+
+
 @_send
 def power_off():
     """Send command: power_off."""
